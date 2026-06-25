@@ -1,0 +1,12 @@
+from bs4 import BeautifulSoup
+html = open('index.html', encoding='utf-8').read()
+soup = BeautifulSoup(html, 'html.parser')
+print('login sec exists:', bool(soup.find(id='s-login')))
+print('register sec exists:', bool(soup.find(id='s-register')))
+print('otp-step exists:', bool(soup.find(id='otp-step')))
+print('otp-step parent:', soup.find(id='otp-step').parent.name)
+print('auth-col exists:', bool(soup.find(class_='auth-col')))
+print('right-panel parent:', soup.find(class_='right-panel').parent.name)
+print('auth-col children count:', len(soup.find(class_='auth-col').find_all(recursive=False)))
+print('card children count:', len(soup.find(class_='card').find_all(recursive=False)))
+print('top-level body children count', len(soup.body.find_all(recursive=False)))

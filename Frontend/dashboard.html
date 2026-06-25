@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecureID — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#040D1E;--surface:#07122A;--surface2:#0C1A38;--surface3:#0F1F42;
+      --gold:#C9A84C;--gold-lt:#E8CC7A;--gold-dim:rgba(201,168,76,0.15);
+      --danger:#E05555;--warn:#D4913A;--safe:#4CAF82;
+      --text:#EEF2FF;--muted:#6B7FA8;--muted2:#4A5A7A;
+      --border:rgba(201,168,76,0.14);--border2:rgba(201,168,76,0.08);
+    }
+    html,body{min-height:100vh;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;z-index:0;
+      background:radial-gradient(ellipse 60% 50% at 0% 0%,rgba(10,28,80,0.5) 0%,transparent 60%),
+                 radial-gradient(ellipse 50% 40% at 100% 100%,rgba(8,20,60,0.4) 0%,transparent 55%);
+      pointer-events:none}
+    body::after{content:'';position:fixed;inset:0;z-index:0;
+      background-image:linear-gradient(rgba(201,168,76,0.025) 1px,transparent 1px),
+                       linear-gradient(90deg,rgba(201,168,76,0.025) 1px,transparent 1px);
+      background-size:65px 65px;
+      mask-image:radial-gradient(ellipse 100% 100% at 50% 0%,black 40%,transparent 100%);
+      pointer-events:none}
+    nav{position:sticky;top:0;z-index:200;height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(4,13,30,0.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border);}
+    nav::after{content:'';position:absolute;bottom:0;left:5%;right:5%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.3),transparent)}
+    .nav-logo{display:flex;align-items:center;gap:10px}
+    .nav-logo-icon{width:34px;height:34px;background:linear-gradient(145deg,#0D1F4A,#091535);border:1px solid rgba(201,168,76,0.35);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .nav-logo-text{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;background:linear-gradient(125deg,var(--gold),var(--gold-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .nav-right{display:flex;align-items:center;gap:12px}
+    .nav-bell{position:relative;width:38px;height:38px;border-radius:10px;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s}
+    .nav-bell:hover{border-color:var(--gold);background:var(--surface2)}
+    .bell-badge{position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;min-width:17px;height:17px;border-radius:50%;display:none;align-items:center;justify-content:center;border:2px solid var(--bg)}
+    .bell-badge.on{display:flex}
+    .user-pill{display:flex;align-items:center;gap:9px;padding:5px 14px 5px 6px;background:var(--surface);border:1px solid var(--border2);border-radius:50px;cursor:pointer;font-size:13px;transition:border-color .2s}
+    .user-pill:hover{border-color:rgba(201,168,76,0.3)}
+    .user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#8A6020);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0A0D14}
+    .logout-btn{padding:7px 16px;background:transparent;border:1px solid rgba(224,85,85,0.3);border-radius:8px;color:var(--danger);font-size:12px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;letter-spacing:.5px;transition:all .2s}
+    .logout-btn:hover{background:rgba(224,85,85,0.08);border-color:rgba(224,85,85,0.5)}
+    .shell{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 62px);position:relative;z-index:1}
+    aside{background:rgba(7,18,42,0.6);border-right:1px solid var(--border);padding:24px 14px;position:sticky;top:62px;height:calc(100vh - 62px);overflow-y:auto;display:flex;flex-direction:column;backdrop-filter:blur(10px)}
+    aside::-webkit-scrollbar{width:4px}
+    aside::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+    .nav-section{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted2);padding:16px 10px 8px;font-weight:600}
+    .nav-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;cursor:pointer;font-size:13px;font-weight:400;color:var(--muted);transition:all .2s;margin-bottom:2px;border:1px solid transparent}
+    .nav-item:hover{background:var(--surface2);color:var(--text)}
+    .nav-item.active{background:rgba(201,168,76,0.09);color:var(--gold-lt);border-color:rgba(201,168,76,0.2)}
+    .nav-item .ni{font-size:16px;width:22px;text-align:center}
+    .emerg-btn{margin-top:auto;padding:13px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.35);border-radius:12px;color:var(--danger);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:.5px;cursor:pointer;transition:all .2s;text-align:center;}
+    .emerg-btn:hover{background:rgba(224,85,85,0.16);box-shadow:0 0 20px rgba(224,85,85,0.15)}
+    .side-links{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+    .side-link{display:block;text-align:center;padding:8px 10px;border-radius:9px;font-size:11px;text-decoration:none;border:1px solid transparent;transition:all .2s;letter-spacing:.3px}
+    .side-link-danger{color:var(--danger);border-color:rgba(224,85,85,0.18)}
+    .side-link-danger:hover{background:rgba(224,85,85,0.07)}
+    .side-link-muted{color:var(--muted);border-color:var(--border2)}
+    .side-link-muted:hover{color:var(--gold);border-color:var(--border)}
+    main{padding:32px 36px;overflow-y:auto;min-height:0}
+    .page{display:none;animation:pageFade .3s ease both}
+    .page.active{display:block}
+    @keyframes pageFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .sh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px}
+    .sh-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:400;letter-spacing:-.3px}
+    .sh-sub{font-size:13px;color:var(--muted);margin-top:4px;font-weight:300}
+    .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:24px}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}
+    .sc{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:22px 24px;position:relative;overflow:hidden;transition:border-color .2s}
+    .sc::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.2),transparent)}
+    .sc:hover{border-color:rgba(201,168,76,0.25)}
+    .sc-icon{font-size:22px;margin-bottom:12px}
+    .sc-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+    .sc-value{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;line-height:1;margin-bottom:4px}
+    .sc-sub{font-size:11px;color:var(--muted);font-weight:300}
+    .sc.gold .sc-value{background:linear-gradient(125deg,var(--gold),var(--gold-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .panel{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+    .panel::before{content:'';position:absolute;top:0;left:5%;right:5%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.15),transparent)}
+    .panel-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;margin-bottom:18px}
+    .atm{background:linear-gradient(145deg,#0A1A3A,#071228);border:1px solid rgba(201,168,76,0.2);border-radius:18px;padding:26px 28px;position:relative;overflow:hidden;min-height:175px;margin-bottom:14px;box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(201,168,76,0.1);transition:transform .2s,box-shadow .2s}
+    .atm:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(0,0,0,0.5)}
+    .atm::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(rgba(201,168,76,0.06),transparent 70%)}
+    .atm.frozen{filter:saturate(.25) brightness(.8)}
+    .atm-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+    .atm-chip{font-size:26px}
+    .card-badge{padding:4px 12px;border-radius:50px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+    .cb-active{background:rgba(76,175,130,0.12);color:var(--safe);border:1px solid rgba(76,175,130,0.3)}
+    .cb-frozen{background:rgba(224,85,85,0.12);color:var(--danger);border:1px solid rgba(224,85,85,0.3)}
+    .atm-num{font-family:'Cormorant Garamond',serif;font-size:20px;letter-spacing:4px;margin-bottom:18px;color:rgba(238,242,255,0.9)}
+    .atm-bottom{display:flex;justify-content:space-between;align-items:flex-end}
+    .atm-holder-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+    .atm-holder{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text)}
+    .atm-bank{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--gold-lt)}
+    .atm-frozen-tag{margin-top:10px;font-size:11px;color:var(--danger)}
+    .atm-actions{display:flex;gap:10px;margin-top:16px}
+    .btn{padding:9px 20px;border:none;border-radius:9px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.5px}
+    .btn-gold{background:linear-gradient(125deg,#9A7018,#C9A030,#E0BC55,#C9A030,#9A7018);background-size:200%;color:#050A14;box-shadow:0 2px 14px rgba(201,168,76,0.2)}
+    .btn-gold:hover{background-position:right;transform:translateY(-1px);box-shadow:0 6px 22px rgba(201,168,76,0.35)}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+    .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-danger{background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:var(--danger)}
+    .btn-danger:hover{background:rgba(224,85,85,0.2)}
+    .btn-safe{background:rgba(76,175,130,0.12);border:1px solid rgba(76,175,130,0.3);color:var(--safe)}
+    .btn-safe:hover{background:rgba(76,175,130,0.2)}
+    .btn-sm{padding:6px 14px;font-size:11px}
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+    .field input,.field select{width:100%;padding:11px 14px;background:rgba(4,13,30,0.8);border:1px solid rgba(201,168,76,0.1);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:all .2s}
+    .field input:focus,.field select:focus{border-color:rgba(201,168,76,0.4);box-shadow:0 0 0 3px rgba(201,168,76,0.06)}
+    .field input::placeholder{color:var(--muted2)}
+    .field select option{background:#07122A}
+    .al-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border2)}
+    .al-item:last-child{border-bottom:none}
+    .al-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+    .al-dot.info{background:var(--gold)}
+    .al-dot.warning{background:var(--warn)}
+    .al-dot.critical{background:var(--danger);box-shadow:0 0 8px rgba(224,85,85,0.5)}
+    .al-msg{font-size:13px;line-height:1.55;font-weight:400}
+    .al-time{font-size:11px;color:var(--muted);margin-top:3px;font-weight:300}
+    .al-unread .al-msg{font-weight:500;color:var(--text)}
+    .facebox{background:rgba(4,13,30,0.6);border:1.5px dashed rgba(201,168,76,0.2);border-radius:18px;padding:36px;text-align:center;margin-bottom:20px;transition:all .3s}
+    .facebox.scanning{border-style:solid;border-color:rgba(201,168,76,0.5);box-shadow:0 0 30px rgba(201,168,76,0.08)}
+    .facebox.verified{border-style:solid;border-color:rgba(76,175,130,0.5);box-shadow:0 0 30px rgba(76,175,130,0.08)}
+    .facebox.failed{border-style:solid;border-color:rgba(224,85,85,0.5);box-shadow:0 0 30px rgba(224,85,85,0.08)}
+    .facebox-icon{font-size:60px;margin-bottom:14px}
+    video,#faceCanvas{width:220px;height:220px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.3);display:none}
+    video.on,#faceCanvas.on{display:inline-block}
+    .facebox-status{font-size:13px;color:var(--muted);margin-top:14px;font-weight:300}
+    .face-btns{display:flex;gap:10px;flex-wrap:wrap}
+    .dev-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border2)}
+    .dev-item:last-child{border-bottom:none}
+    .dev-left{display:flex;align-items:center;gap:14px}
+    .dev-icon-wrap{width:40px;height:40px;border-radius:11px;background:var(--surface2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px}
+    .dev-name{font-size:13px;font-weight:500}
+    .dev-time{font-size:11px;color:var(--muted);margin-top:2px;font-weight:300}
+    #toast{position:fixed;bottom:28px;right:28px;z-index:9999;padding:13px 20px;border-radius:12px;font-size:13px;font-weight:500;max-width:340px;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;font-family:'Outfit',sans-serif;}
+    #toast.on{transform:translateY(0);opacity:1}
+    #toast.success{background:rgba(76,175,130,0.12);border:1px solid rgba(76,175,130,0.35);color:var(--safe)}
+    #toast.error{background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.35);color:var(--danger)}
+    #toast.warning{background:rgba(212,145,58,0.12);border:1px solid rgba(212,145,58,0.35);color:var(--warn)}
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(12px);z-index:1000;display:none;align-items:center;justify-content:center}
+    .modal-bg.on{display:flex}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:38px;max-width:460px;width:90%;box-shadow:0 40px 80px rgba(0,0,0,0.6);position:relative}
+    .modal::before{content:'';display:block;position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.4),transparent)}
+    .modal-icon{font-size:44px;margin-bottom:16px}
+    .modal h2{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:400;margin-bottom:10px}
+    .modal p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:26px;font-weight:300}
+    .modal-btns{display:flex;gap:12px}
+    .modal-btns .btn{flex:1}
+    .qa-grid{display:flex;flex-direction:column;gap:10px}
+    .qa-btn{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);transition:all .2s;text-align:left}
+    .qa-btn:hover{border-color:rgba(201,168,76,0.3);background:var(--surface3)}
+    .qa-ico{font-size:20px;width:32px;text-align:center}
+    .qa-label{font-size:13px;font-weight:500}
+    .qa-desc{font-size:11px;color:var(--muted);margin-top:1px;font-weight:300}
+
+    /* Eye toggle for password fields if any */
+    .pw-wrap { position: relative; }
+    .eye-btn { position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;opacity:.5;transition:opacity .2s;padding:0; }
+    .eye-btn:hover { opacity:1; }
+
+    /* Face verify modal */
+    .fv-bg { position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(14px);z-index:9999;display:none;align-items:center;justify-content:center; }
+    .fv-bg.on { display:flex; }
+    .fv-box { background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:38px;text-align:center;max-width:360px;width:90%;box-shadow:0 40px 80px rgba(0,0,0,0.6);position:relative; }
+    .fv-box::before { content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent); }
+    .fv-title { font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:400;margin-bottom:5px; }
+    .fv-sub { font-size:12px;color:var(--muted);margin-bottom:22px;font-weight:300; }
+    #dvVideo { width:180px;height:180px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.35);display:none;margin:0 auto 14px; }
+    #dvVideo.on { display:block; }
+    #dvIcon { font-size:56px;margin-bottom:12px; }
+    #dvStatus { font-size:12px;color:var(--muted);margin-bottom:18px;min-height:18px; }
+    #dvCanvas { display:none; }
+    .dv-btns { display:flex;gap:10px;justify-content:center;flex-wrap:wrap; }
+
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+    .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.2);border-top-color:currentColor;border-radius:50%;animation:sp .65s linear infinite;vertical-align:middle;margin-right:7px}
+    @keyframes sp{to{transform:rotate(360deg)}}
+  
+
+
+    /* ── MOBILE RESPONSIVE ─────────────────────────────────── */
+    @media (max-width: 768px) {
+      /* Sidebar becomes bottom tab bar */
+      .shell { grid-template-columns: 1fr; }
+
+      aside {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        top: auto; width: 100%; height: auto;
+        display: flex; flex-direction: row;
+        overflow-x: auto; overflow-y: visible;
+        padding: 6px 8px 8px;
+        border-top: 1px solid var(--border);
+        border-right: none;
+        background: rgba(4,9,22,0.98);
+        z-index: 200; gap: 2px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        backdrop-filter: blur(20px);
+        min-height: unset;
+      }
+      aside::-webkit-scrollbar { display: none; }
+      .nav-section { display: none; }
+      .side-links { display: none; }
+
+      .nav-item {
+        flex-direction: column; gap: 2px;
+        padding: 6px 10px; min-width: 56px; flex-shrink: 0;
+        font-size: 9px; text-align: center;
+        border-radius: 10px; white-space: nowrap;
+        border: none; justify-content: center;
+      }
+      .nav-item .ni { font-size: 20px; display: block; margin: 0 auto 2px; }
+
+      /* Main content bottom padding for nav bar */
+      main { padding: 16px 14px 88px; }
+
+      /* Top nav */
+      nav { padding: 0 12px; height: 56px; }
+      .nav-logo-text { font-size: 14px; }
+      #userName { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+
+      /* Stats */
+      .stats-row { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+      .stat-card { padding: 14px 12px; }
+      .stat-val { font-size: 22px; }
+
+      /* Two-col panels */
+      .overview-grid { grid-template-columns: 1fr !important; }
+      .dash-two-col  { grid-template-columns: 1fr !important; }
+
+      /* Cards */
+      .atm { padding: 18px; }
+
+      /* Panels */
+      .panel { padding: 14px 12px; }
+      .pt { font-size: 16px; }
+
+      /* Modal */
+      #emergModal .modal-box { width: 92vw; padding: 22px 16px; }
+
+      /* Face box */
+      .facebox { height: 150px; }
+
+      /* Dev list */
+      .dev-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .dev-item > button { align-self: flex-end; }
+
+      /* Alerts */
+      .al-item { padding: 10px 0; }
+      .al-msg { font-size: 12px; }
+    }
+
+    @media (max-width: 480px) {
+      main { padding: 12px 10px 88px; }
+      .stat-val { font-size: 19px; }
+      .nav-logo-text { font-size: 13px; }
+      .stat-card { padding: 12px 10px; }
+    }
+
+    @media (max-width: 360px) {
+      .stats-row { grid-template-columns: 1fr 1fr !important; }
+      main { padding: 8px 8px 88px; }
+      .nav-item { min-width: 48px; padding: 5px 8px; }
+    }
+
+  </style>
+  <script src="face-engine.js"></script>
+  <script src="face-modal.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">🛡</div>
+    <span class="nav-logo-text">SecureID</span>
+  </div>
+  <div class="nav-right">
+    <div class="nav-bell" onclick="showPage('alerts')" title="Alerts">
+      🔔
+      <div class="bell-badge" id="bellBadge"></div>
+    </div>
+    <div class="user-pill">
+      <div class="user-av" id="userAv">?</div>
+      <span id="userName">Loading…</span>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="shell">
+  <aside>
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" id="nav-overview" onclick="showPage('overview')"><span class="ni">🏠</span> Overview</div>
+    <div class="nav-item" id="nav-cards" onclick="showPage('cards')"><span class="ni">💳</span> My Cards</div>
+    <div class="nav-item" id="nav-face" onclick="showPage('face')"><span class="ni">👁</span> Face ID</div>
+    <div class="nav-item" id="nav-devices" onclick="showPage('devices')"><span class="ni">📱</span> Devices</div>
+    <div class="nav-item" id="nav-alerts" onclick="showPage('alerts')"><span class="ni">🔔</span> Alerts</div>
+    <div class="nav-section">Security</div>
+    <div class="nav-item" id="nav-simulate" onclick="showPage('simulate')"><span class="ni">🧪</span> Test Transaction</div>
+    <button class="emerg-btn" onclick="openModal()">🚨 Emergency Freeze All</button>
+    <div class="side-links">
+      <a href="emergency.html" target="_blank" class="side-link side-link-danger">📴 Emergency Page</a>
+      <a href="system-check.html" target="_blank" class="side-link side-link-muted">🔧 System Check</a>
+    </div>
+  </aside>
+
+  <main>
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="sh">
+        <div>
+          <div class="sh-title" id="welcomeMsg">Welcome back</div>
+          <div class="sh-sub">Your identity protection command centre</div>
+        </div>
+      </div>
+      <div class="g3">
+        <div class="sc gold">
+          <div class="sc-icon">🛡</div>
+          <div class="sc-label">Account Status</div>
+          <div class="sc-value" id="statStatus">Active</div>
+          <div class="sc-sub">All systems protected</div>
+        </div>
+        <div class="sc">
+          <div class="sc-icon">👁</div>
+          <div class="sc-label">Face ID</div>
+          <div class="sc-value" id="statFace" style="font-size:22px;color:var(--muted)">Not Set</div>
+          <div class="sc-sub" id="statFaceSub">Go to Face ID tab</div>
+        </div>
+        <div class="sc">
+          <div class="sc-icon">💳</div>
+          <div class="sc-label">Linked Cards</div>
+          <div class="sc-value" id="statCards" style="color:var(--gold-lt)">0</div>
+          <div class="sc-sub">ATM / Debit cards</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="panel">
+          <div class="panel-title">Recent Alerts</div>
+          <div id="recentAlerts"><div style="color:var(--muted);font-size:13px">Loading…</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Quick Actions</div>
+          <div class="qa-grid">
+            <div class="qa-btn" onclick="showPage('cards')"><span class="qa-ico">💳</span><div><div class="qa-label">Manage Cards</div><div class="qa-desc">Add, freeze or unfreeze cards</div></div></div>
+            <div class="qa-btn" onclick="showPage('face')"><span class="qa-ico">👁</span><div><div class="qa-label">Enroll Face ID</div><div class="qa-desc">Add biometric protection</div></div></div>
+            <div class="qa-btn" onclick="showPage('simulate')"><span class="qa-ico">🧪</span><div><div class="qa-label">Test Transaction</div><div class="qa-desc">Simulate ATM / POS</div></div></div>
+            <div class="qa-btn" style="border-color:rgba(224,85,85,0.25)" onclick="openModal()"><span class="qa-ico">🚨</span><div><div class="qa-label" style="color:var(--danger)">Emergency Freeze</div><div class="qa-desc">Freeze all cards instantly</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARDS -->
+    <div class="page" id="page-cards">
+      <div class="sh">
+        <div><div class="sh-title">My ATM Cards</div><div class="sh-sub">Manage and protect your linked cards</div></div>
+        <button class="btn btn-gold" onclick="toggleAddCard()">+ Link New Card</button>
+      </div>
+      <div class="panel" id="addCardPanel" style="display:none">
+        <div class="panel-title">Link a New Card</div>
+        <div class="g2">
+          <div class="field"><label>Card Number</label><input type="text" id="newNum" placeholder="1234567890123456" maxlength="16"/></div>
+          <div class="field"><label>Card Holder Name</label><input type="text" id="newHolder" placeholder="EMMANUEL CHUKWU"/></div>
+          <div class="field"><label>Bank Name</label><input type="text" id="newBank" placeholder="GTBank, Access, UBA…"/></div>
+          <div class="field"><label>Card Type</label><select id="newType"><option value="VERVE">Verve</option><option value="VISA">Visa</option><option value="MASTERCARD">Mastercard</option></select></div>
+          <div class="field"><label>Expiry Month</label><input type="text" id="newExpM" placeholder="MM" maxlength="2"/></div>
+          <div class="field"><label>Expiry Year</label><input type="text" id="newExpY" placeholder="YYYY" maxlength="4"/></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-gold" onclick="addCard()">Link Card</button>
+          <button class="btn btn-ghost" onclick="toggleAddCard()">Cancel</button>
+        </div>
+      </div>
+      <div id="cardsList"><div style="color:var(--muted);font-size:13px">Loading…</div></div>
+    </div>
+
+    <!-- FACE ID -->
+    <div class="page" id="page-face">
+      <div class="sh"><div><div class="sh-title">Face ID Enrollment</div><div class="sh-sub">Secure your account with biometric identity</div></div></div>
+      <div class="g2">
+        <div class="panel">
+          <div class="panel-title">Camera</div>
+          <div class="facebox" id="faceBox">
+            <div class="facebox-icon" id="faceIcon">👤</div>
+            <video id="faceVideo" autoplay muted playsinline></video>
+            <canvas id="faceCanvas" width="220" height="220"></canvas>
+            <div class="facebox-status" id="faceStatus">Use your webcam to enroll your face for biometric protection.</div>
+          </div>
+          <div class="face-btns">
+            <button class="btn btn-gold" id="btnStartCam" onclick="startCam()">📷 Start Camera</button>
+            <button class="btn btn-safe" id="btnEnroll" onclick="enrollFace()" style="display:none">✅ Enroll My Face</button>
+            <button class="btn btn-ghost" id="btnVerify" onclick="verifyFace()" style="display:none">🔍 Verify</button>
+            <button class="btn btn-ghost" id="btnStopCam" onclick="stopCam()" style="display:none">⏹ Stop</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">How It Works</div>
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;gap:14px;align-items:flex-start"><div style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--gold);flex-shrink:0">I</div><div><div style="font-size:13px;font-weight:500;margin-bottom:3px">Start Camera</div><div style="font-size:12px;color:var(--muted);font-weight:300">Allow camera access when the browser asks</div></div></div>
+            <div style="display:flex;gap:14px;align-items:flex-start"><div style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--gold);flex-shrink:0">II</div><div><div style="font-size:13px;font-weight:500;margin-bottom:3px">Position Face</div><div style="font-size:12px;color:var(--muted);font-weight:300">Look directly at camera with good lighting</div></div></div>
+            <div style="display:flex;gap:14px;align-items:flex-start"><div style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--gold);flex-shrink:0">III</div><div><div style="font-size:13px;font-weight:500;margin-bottom:3px">Enroll</div><div style="font-size:12px;color:var(--muted);font-weight:300">Click Enroll My Face — a 128-point embedding is saved, not the photo</div></div></div>
+            <div style="display:flex;gap:14px;align-items:flex-start"><div style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--gold);flex-shrink:0">IV</div><div><div style="font-size:13px;font-weight:500;margin-bottom:3px">Protected</div><div style="font-size:12px;color:var(--muted);font-weight:300">Use Verify to test your face matches at 85%+ similarity</div></div></div>
+          </div>
+          <div id="faceStatusBox" style="margin-top:22px;padding:14px 16px;border-radius:11px;background:rgba(4,13,30,0.5);border:1px solid var(--border2)">
+            <div id="faceStatusMsg" style="font-size:12px;color:var(--muted);font-weight:300">No face enrolled yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEVICES -->
+    <div class="page" id="page-devices">
+      <div class="sh"><div><div class="sh-title">Trusted Devices</div><div class="sh-sub">All devices that have accessed your account</div></div></div>
+      <div class="panel"><div id="devicesList">Loading…</div></div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="page" id="page-alerts">
+      <div class="sh">
+        <div><div class="sh-title">Security Alerts</div><div class="sh-sub">Complete log of security events on your account</div></div>
+        <button class="btn btn-ghost" onclick="markAllRead()">Mark all read</button>
+      </div>
+      <div class="panel"><div id="alertsList">Loading…</div></div>
+    </div>
+
+    <!-- SIMULATE -->
+    <div class="page" id="page-simulate">
+      <div class="sh"><div><div class="sh-title">Test Transaction</div><div class="sh-sub">Simulate ATM / POS to test card freeze status</div></div></div>
+      <div style="max-width:480px">
+        <div class="panel">
+          <div class="panel-title">Transaction Details</div>
+          <div class="field"><label>Select Card</label><select id="simCard"></select></div>
+          <div class="field"><label>Amount (₦)</label><input type="number" id="simAmt" value="5000"/></div>
+          <div class="field"><label>Description</label><input type="text" id="simDesc" value="ATM Withdrawal"/></div>
+          <button class="btn btn-gold" onclick="simulate()">🧪 Run Simulation</button>
+          <div id="simResult" style="display:none;margin-top:20px"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-bg" id="emergModal">
+  <div class="modal">
+    <div class="modal-icon">🚨</div>
+    <h2 style="color:var(--danger)">Emergency Freeze</h2>
+    <p>This will instantly freeze every linked card. No ATM or POS transaction will go through. Are you absolutely sure?</p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" style="font-weight:700" onclick="doEmergFreeze()">Freeze Everything Now</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'http://127.0.0.1:5000/api';
+let allCards = [];
+let camStream = null;
+
+// ── URL helper ────────────────────────────────────────────────────
+function pageURL(name) {
+  const loc = window.location;
+  if (loc.protocol === 'http:' || loc.protocol === 'https:') {
+    return loc.origin + loc.pathname.replace(/[^/]*$/, '') + name;
+  }
+  return name;
+}
+
+// ── Fresh headers every call ──────────────────────────────────────
+function H() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + (localStorage.getItem('secureid_token') || '')
+  };
+}
+
+// ── Auth guard ────────────────────────────────────────────────────
+var token = localStorage.getItem('secureid_token');
+if (!token) { window.location.replace(pageURL('index.html')); }
+
+var me = {};
+
+// ── Toast ─────────────────────────────────────────────────────────
+var _tt;
+function toast(msg, type) {
+  type = type || 'success';
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'on ' + type;
+  clearTimeout(_tt);
+  _tt = setTimeout(function(){ el.classList.remove('on'); }, 3600);
+}
+
+// ── Pages ─────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  var pg = document.getElementById('page-' + name);
+  if (pg) pg.classList.add('active');
+  var ni = document.getElementById('nav-' + name);
+  if (ni) ni.classList.add('active');
+  if (name === 'cards')    loadCards();
+  if (name === 'devices')  loadDevices();
+  if (name === 'alerts')   loadAlerts();
+  if (name === 'simulate') fillSimCards();
+}
+
+// ── Logout ────────────────────────────────────────────────────────
+function logout() {
+  localStorage.removeItem('secureid_token');
+  localStorage.removeItem('secureid_user');
+  window.location.replace(pageURL('index.html'));
+}
+
+// ── Face Modal helper ─────────────────────────────────────────────
+var _fm = null;
+function getFM() {
+  if (!_fm) {
+    _fm = new FaceModal({
+      apiBase: API,
+      getToken: function() { return localStorage.getItem('secureid_token') || ''; }
+    });
+    _fm.init();
+  }
+  return _fm;
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+async function init() {
+  token = localStorage.getItem('secureid_token');
+  if (!token) { window.location.replace(pageURL('index.html')); return; }
+
+  try {
+    var r = await fetch(API + '/user/profile', { headers: H() });
+
+    if (r.status === 401) {
+      localStorage.removeItem('secureid_token');
+      localStorage.removeItem('secureid_user');
+      window.location.replace(pageURL('index.html'));
+      return;
+    }
+    if (!r.ok) { console.error('Profile error:', r.status); return; }
+
+    var d = await r.json();
+    if (!d.success) { console.error('Profile failed:', d); return; }
+
+    me = d.user;
+    var name     = me.name || '';
+    var status   = me.accountStatus || me.account_status || 'active';
+    var enrolled = me.faceEnrolled  || me.face_enrolled  || false;
+
+    document.getElementById('userName').textContent    = name;
+    document.getElementById('userAv').textContent      = name.charAt(0).toUpperCase();
+    document.getElementById('welcomeMsg').textContent  = 'Welcome back, ' + name.split(' ')[0];
+    document.getElementById('statStatus').textContent  = status.charAt(0).toUpperCase() + status.slice(1);
+    document.getElementById('statFace').textContent    = enrolled ? 'Enrolled ✓' : 'Not Set';
+    document.getElementById('statFace').style.color    = enrolled ? 'var(--safe)' : 'var(--muted)';
+    document.getElementById('statFaceSub').textContent = enrolled ? 'Biometric active' : 'Go to Face ID tab';
+    if (enrolled) {
+      document.getElementById('faceStatusMsg').textContent = '✅ Face enrolled. Your account is biometrically protected.';
+    }
+
+    loadCardCount();
+    loadRecentAlerts();
+    loadBellBadge();
+
+    // Preload face models silently
+    if (window.FaceModal) getFM();
+
+  } catch(e) { console.error('Init error:', e); }
+}
+
+// ── Bell badge ────────────────────────────────────────────────────
+async function loadBellBadge() {
+  try {
+    var r = await fetch(API + '/alerts', { headers: H() });
+    var d = await r.json();
+    if (!d.success) return;
+    var n  = d.alerts.filter(function(a){ return !a.read; }).length;
+    var el = document.getElementById('bellBadge');
+    el.textContent = n;
+    el.classList.toggle('on', n > 0);
+  } catch(e) {}
+}
+
+// ── Alerts ────────────────────────────────────────────────────────
+async function loadRecentAlerts() {
+  try {
+    var r = await fetch(API + '/alerts', { headers: H() });
+    var d = await r.json();
+    var el = document.getElementById('recentAlerts');
+    if (!d.success || !d.alerts.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;font-weight:300">No alerts yet.</div>';
+      return;
+    }
+    el.innerHTML = d.alerts.slice(0,5).map(alertHTML).join('');
+  } catch(e) {}
+}
+
+async function loadAlerts() {
+  try {
+    var r = await fetch(API + '/alerts', { headers: H() });
+    var d = await r.json();
+    var el = document.getElementById('alertsList');
+    if (!d.success || !d.alerts.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px">No alerts yet.</div>';
+      return;
+    }
+    el.innerHTML = d.alerts.map(alertHTML).join('');
+    loadBellBadge();
+  } catch(e) {}
+}
+
+function alertHTML(a) {
+  var cls  = { info:'info', warning:'warning', critical:'critical' }[a.severity] || 'info';
+  var ts   = a.createdAt || a.created_at || new Date();
+  var time = new Date(ts).toLocaleString();
+  return '<div class="al-item ' + (!a.read ? 'al-unread' : '') + '">'
+    + '<div class="al-dot ' + cls + '"></div>'
+    + '<div><div class="al-msg">' + a.message + '</div>'
+    + '<div class="al-time">' + time + ' · ' + a.severity.toUpperCase() + '</div></div></div>';
+}
+
+async function markAllRead() {
+  await fetch(API + '/alerts/read-all', { method:'PATCH', headers: H() });
+  loadAlerts();
+  toast('All alerts marked as read');
+}
+
+// ── Cards ─────────────────────────────────────────────────────────
+async function loadCardCount() {
+  try {
+    var r = await fetch(API + '/cards', { headers: H() });
+    var d = await r.json();
+    if (d.success) {
+      allCards = d.cards;
+      document.getElementById('statCards').textContent = d.cards.length;
+    }
+  } catch(e) {}
+}
+
+async function loadCards() {
+  try {
+    var r  = await fetch(API + '/cards', { headers: H() });
+    var d  = await r.json();
+    var el = document.getElementById('cardsList');
+    if (!d.success) { el.innerHTML = '<div style="color:var(--muted)">Failed to load cards.</div>'; return; }
+    allCards = d.cards;
+    if (!d.cards.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px">No cards linked yet. Click "Link New Card" to get started.</div>';
+      return;
+    }
+    el.innerHTML = d.cards.map(cardHTML).join('');
+  } catch(e) {}
+}
+
+function cardHTML(c) {
+  var frozen = c.status === 'frozen';
+  return '<div class="atm ' + (frozen ? 'frozen' : '') + '">'
+    + '<div class="atm-top"><div class="atm-chip">💳</div>'
+    + '<div class="card-badge ' + (frozen ? 'cb-frozen' : 'cb-active') + '">' + (frozen ? '❄ Frozen' : '✅ Active') + '</div></div>'
+    + '<div class="atm-num">' + c.masked + '</div>'
+    + '<div class="atm-bottom">'
+    + '<div><div class="atm-holder-lbl">Card Holder</div><div class="atm-holder">' + c.cardHolder + '</div></div>'
+    + '<div style="text-align:right"><div class="atm-holder-lbl">' + c.cardType + '</div><div class="atm-bank">' + c.bank + '</div></div>'
+    + '</div>'
+    + (frozen && c.frozenAt ? '<div class="atm-frozen-tag">Frozen: ' + new Date(c.frozenAt).toLocaleString() + '</div>' : '')
+    + '<div class="atm-actions">'
+    + (frozen
+      ? '<button class="btn btn-safe btn-sm" onclick="unfreezeCard(' + c.id + ')">🔓 Unfreeze</button>'
+      : '<button class="btn btn-danger btn-sm" onclick="freezeCard(' + c.id + ')">❄ Freeze Card</button>')
+    + '</div></div>';
+}
+
+function toggleAddCard() {
+  var p = document.getElementById('addCardPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+async function addCard() {
+  var body = {
+    cardNumber:  document.getElementById('newNum').value.trim(),
+    cardHolder:  document.getElementById('newHolder').value.trim().toUpperCase(),
+    bank:        document.getElementById('newBank').value.trim(),
+    cardType:    document.getElementById('newType').value,
+    expiryMonth: document.getElementById('newExpM').value.trim(),
+    expiryYear:  document.getElementById('newExpY').value.trim()
+  };
+  if (!body.cardNumber || !body.cardHolder || !body.bank) return toast('Fill all required fields', 'error');
+  try {
+    var r = await fetch(API + '/cards/add', { method:'POST', headers: H(), body: JSON.stringify(body) });
+    var d = await r.json();
+    if (d.success) { toast('Card ' + d.card.masked + ' linked ✓'); toggleAddCard(); loadCards(); loadCardCount(); }
+    else toast(d.message, 'error');
+  } catch(e) { toast('Failed to add card', 'error'); }
+}
+
+async function freezeCard(id) {
+  var enrolled = me.faceEnrolled || me.face_enrolled || false;
+  if (enrolled) {
+    getFM().verify(async function(verified) {
+      if (!verified) return toast('Face verification failed. Card not frozen.', 'error');
+      await doFreezeCard(id);
+    });
+  } else {
+    await doFreezeCard(id);
+  }
+}
+
+async function doFreezeCard(id) {
+  try {
+    var r = await fetch(API + '/cards/' + id + '/freeze', { method:'POST', headers: H(), body: JSON.stringify({ reason: 'User freeze' }) });
+    var d = await r.json();
+    if (d.success) { toast('Card frozen ❄'); loadCards(); }
+    else toast(d.message, 'error');
+  } catch(e) { toast('Failed to freeze', 'error'); }
+}
+
+async function unfreezeCard(id) {
+  try {
+    var r = await fetch(API + '/cards/' + id + '/unfreeze', { method:'POST', headers: H() });
+    var d = await r.json();
+    if (d.success) { toast('Card unfrozen ✅'); loadCards(); }
+    else toast(d.message, 'error');
+  } catch(e) { toast('Failed to unfreeze', 'error'); }
+}
+
+// ── Emergency freeze ──────────────────────────────────────────────
+function openModal()  { document.getElementById('emergModal').classList.add('on'); }
+function closeModal() { document.getElementById('emergModal').classList.remove('on'); }
+
+async function doEmergFreeze() {
+  closeModal();
+  var enrolled = me.faceEnrolled || me.face_enrolled || false;
+  if (enrolled) {
+    getFM().verify(async function(verified) {
+      if (!verified) return toast('Face verification failed. Emergency freeze cancelled.', 'error');
+      await execEmergFreeze();
+    });
+  } else {
+    await execEmergFreeze();
+  }
+}
+
+async function execEmergFreeze() {
+  try {
+    var r = await fetch(API + '/cards/emergency-freeze', { method:'POST', headers: H() });
+    var d = await r.json();
+    if (d.success) { toast('🚨 ' + d.frozenCount + ' card(s) frozen!', 'warning'); loadCards(); loadRecentAlerts(); loadBellBadge(); }
+    else toast(d.message, 'error');
+  } catch(e) { toast('Emergency freeze failed', 'error'); }
+}
+
+// ── Devices ───────────────────────────────────────────────────────
+async function loadDevices() {
+  try {
+    var r  = await fetch(API + '/devices', { headers: H() });
+    var d  = await r.json();
+    var el = document.getElementById('devicesList');
+    if (!d.success || !d.devices.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px">No devices found.</div>';
+      return;
+    }
+    var myDid = localStorage.getItem('sid_did');
+    el.innerHTML = d.devices.map(function(dv) {
+      var isThis = dv.deviceId === myDid;
+      return '<div class="dev-item">'
+        + '<div class="dev-left"><div class="dev-icon-wrap">💻</div>'
+        + '<div><div class="dev-name">' + (dv.deviceName || 'Unknown Device')
+        + (isThis ? ' <span style="font-size:10px;color:var(--gold);margin-left:6px">(This device)</span>' : '')
+        + '</div><div class="dev-time">Last seen: ' + new Date(dv.lastSeen).toLocaleString() + '</div></div></div>'
+        + (!isThis ? '<button class="btn btn-danger btn-sm" onclick="revokeDevice(\'' + dv.deviceId + '\')">Revoke</button>' : '')
+        + '</div>';
+    }).join('');
+  } catch(e) {}
+}
+
+async function revokeDevice(did) {
+  try {
+    var r = await fetch(API + '/devices/' + did, { method:'DELETE', headers: H() });
+    var d = await r.json();
+    if (d.success) { toast('Device revoked'); loadDevices(); }
+    else toast(d.message, 'error');
+  } catch(e) { toast('Failed to revoke', 'error'); }
+}
+
+// ── Face ID tab ───────────────────────────────────────────────────
+function startCam()  { enrollFace(); }
+function stopCam()   { if (window.__fm) window.__fm.cancel(); }
+
+function enrollFace() {
+  getFM().enroll(function(success) {
+    if (success) {
+      document.getElementById('faceBox').className    = 'facebox verified';
+      document.getElementById('faceStatus').textContent = '✅ Face enrolled! Your biometric is now active.';
+      document.getElementById('faceStatusMsg').textContent = '✅ Face enrolled. Your account is biometrically protected.';
+      document.getElementById('statFace').textContent = 'Enrolled ✓';
+      document.getElementById('statFace').style.color = 'var(--safe)';
+      me.faceEnrolled = true;
+      toast('Face enrolled! 🎉');
+    } else {
+      toast('Face enrollment was cancelled or failed.', 'error');
+    }
+  });
+}
+
+function verifyFace() {
+  var enrolled = me.faceEnrolled || me.face_enrolled || false;
+  if (!enrolled) return toast('Enroll your face first', 'error');
+  getFM().verify(function(verified, similarity) {
+    if (verified) {
+      document.getElementById('faceBox').className      = 'facebox verified';
+      document.getElementById('faceStatus').textContent = '✅ Face verified! Match: ' + similarity + '%';
+      toast('Face verified — ' + similarity + '% match ✅');
+    } else {
+      document.getElementById('faceBox').className      = 'facebox failed';
+      document.getElementById('faceStatus').textContent = '❌ Face not recognised. Match: ' + similarity + '%';
+      toast('Not recognised — ' + similarity + '% match', 'error');
+    }
+  });
+}
+
+// ── Simulate ──────────────────────────────────────────────────────
+function fillSimCards() {
+  var s = document.getElementById('simCard');
+  s.innerHTML = allCards.length
+    ? allCards.map(function(c){ return '<option value="' + c.id + '">' + c.masked + ' — ' + c.bank + ' (' + c.status + ')</option>'; }).join('')
+    : '<option>No cards linked</option>';
+}
+
+async function simulate() {
+  var id   = document.getElementById('simCard').value;
+  var amt  = document.getElementById('simAmt').value;
+  var desc = document.getElementById('simDesc').value;
+  if (!id || id === 'No cards linked') return toast('No cards available', 'error');
+  try {
+    var r   = await fetch(API + '/cards/' + id + '/simulate-transaction', {
+      method:'POST', headers: H(), body: JSON.stringify({ amount: Number(amt), description: desc })
+    });
+    var d   = await r.json();
+    var box = document.getElementById('simResult');
+    box.style.display = 'block';
+    var col = d.approved ? 'rgba(76,175,130,0.3)' : 'rgba(224,85,85,0.3)';
+    var bg  = d.approved ? 'rgba(76,175,130,0.06)' : 'rgba(224,85,85,0.06)';
+    box.innerHTML = '<div style="padding:20px;border-radius:14px;border:1px solid ' + col + ';background:' + bg + '">'
+      + '<div style="font-size:28px;margin-bottom:10px">' + (d.approved ? '✅' : '❌') + '</div>'
+    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;font-weight:400;margin-bottom:6px">' + d.message + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);font-weight:300">₦' + Number(amt).toLocaleString() + ' · ' + desc + '</div></div>';
+    toast(d.message, d.approved ? 'success' : 'error');
+  } catch(e) { toast('Simulation failed', 'error'); }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

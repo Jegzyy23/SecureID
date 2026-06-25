@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecureID — System Check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#040D1E;--surface:#07122A;--surface2:#0C1A38;--surface3:#0F1F42;
+      --gold:#C9A84C;--gold-lt:#E8CC7A;--gold-dim:rgba(201,168,76,0.15);
+      --safe:#4CAF82;--danger:#E05555;--warn:#D4913A;
+      --text:#EEF2FF;--muted:#6B7FA8;--muted2:#4A5A7A;
+      --border:rgba(201,168,76,0.14);--border2:rgba(201,168,76,0.08);
+    }
+
+    html,body{min-height:100vh;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text)}
+
+    body::before{content:'';position:fixed;inset:0;z-index:0;
+      background:radial-gradient(ellipse 60% 50% at 50% -10%,rgba(10,28,80,0.5) 0%,transparent 60%),
+                 linear-gradient(170deg,#030A18 0%,#04101F 50%,#030A18 100%);
+      pointer-events:none}
+    body::after{content:'';position:fixed;inset:0;z-index:0;
+      background-image:linear-gradient(rgba(201,168,76,0.025) 1px,transparent 1px),
+                       linear-gradient(90deg,rgba(201,168,76,0.025) 1px,transparent 1px);
+      background-size:65px 65px;pointer-events:none}
+
+    /* Corners */
+    .corner{position:fixed;z-index:0;opacity:.08}
+    .ctl{top:0;left:0}.cbr{bottom:0;right:0;transform:rotate(180deg)}
+    .corner svg{width:180px;height:180px}
+
+    .page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:48px 28px 60px}
+
+    /* Header */
+    .header{text-align:center;margin-bottom:44px}
+    .logo-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:12px}
+    .logo-icon{width:48px;height:48px;background:linear-gradient(145deg,#0D1F4A,#091535);
+      border:1px solid rgba(201,168,76,0.38);border-radius:14px;
+      display:flex;align-items:center;justify-content:center;font-size:22px}
+    .logo-name{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;
+      letter-spacing:3px;text-transform:uppercase;
+      background:linear-gradient(125deg,var(--gold),var(--gold-lt));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .header p{font-size:13px;color:var(--muted);font-weight:300;margin-top:4px}
+
+    /* Summary bar */
+    .summary{display:flex;align-items:center;justify-content:space-between;
+      padding:18px 24px;border-radius:16px;margin-bottom:24px;transition:all .4s}
+    .summary.checking{background:rgba(212,145,58,0.06);border:1px solid rgba(212,145,58,0.25)}
+    .summary.ok{background:rgba(76,175,130,0.06);border:1px solid rgba(76,175,130,0.28)}
+    .summary.fail{background:rgba(224,85,85,0.06);border:1px solid rgba(224,85,85,0.28)}
+    .sum-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400}
+    .sum-sub{font-size:12px;color:var(--muted);margin-top:3px;font-weight:300}
+
+    /* Terminal */
+    .terminal{background:#020810;border:1px solid rgba(201,168,76,0.15);
+      border-radius:16px;padding:20px;margin-bottom:22px;
+      font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.75;
+      max-height:260px;overflow-y:auto;position:relative}
+    .terminal::before{content:'';position:absolute;top:0;left:5%;right:5%;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(201,168,76,0.2),transparent)}
+    .terminal::-webkit-scrollbar{width:4px}
+    .terminal::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+    .tl{display:flex;gap:10px}
+    .tp{color:#4CAF82;flex-shrink:0}
+    .tc{color:var(--gold)}
+    .tok{color:#6FD9A6}
+    .terr{color:#FF8080}
+    .twarn{color:#F0B060}
+    .tdim{color:#4A5A7A}
+
+    /* Panels */
+    .panel{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+    .panel::before{content:'';position:absolute;top:0;left:5%;right:5%;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(201,168,76,0.12),transparent)}
+    .panel-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;margin-bottom:20px}
+
+    /* Check items */
+    .ci{display:flex;align-items:center;justify-content:space-between;
+      padding:14px 0;border-bottom:1px solid var(--border2)}
+    .ci:last-child{border-bottom:none}
+    .ci-left{display:flex;align-items:center;gap:14px}
+    .ci-icon{width:40px;height:40px;border-radius:11px;background:var(--surface2);
+      border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px}
+    .ci-name{font-size:13px;font-weight:500;margin-bottom:2px}
+    .ci-desc{font-size:11px;color:var(--muted);font-weight:300}
+
+    /* Status badges */
+    .sb{padding:5px 14px;border-radius:50px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .sb-checking{background:rgba(212,145,58,0.1);border:1px solid rgba(212,145,58,0.3);color:var(--warn);animation:blink 1.2s ease-in-out infinite}
+    .sb-ok{background:rgba(76,175,130,0.1);border:1px solid rgba(76,175,130,0.3);color:var(--safe)}
+    .sb-fail{background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--danger)}
+    .sb-warn{background:rgba(212,145,58,0.1);border:1px solid rgba(212,145,58,0.3);color:var(--warn)}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.45}}
+
+    /* Fix cards */
+    .fix{background:var(--surface2);border:1px solid var(--border2);border-radius:13px;padding:18px 20px;margin-top:14px}
+    .fix-title{font-size:12px;font-weight:600;color:var(--warn);margin-bottom:10px;letter-spacing:.3px}
+    .fix-cmd{background:#020810;border-radius:8px;padding:8px 14px;
+      font-family:'DM Mono',monospace;font-size:12px;color:var(--gold-lt);
+      margin-top:7px;border:1px solid rgba(201,168,76,0.1)}
+    .fix-text{font-size:12px;color:var(--muted);margin-top:7px;font-weight:300;line-height:1.6}
+
+    /* Buttons */
+    .btn{padding:10px 22px;border:none;border-radius:10px;font-family:'Outfit',sans-serif;
+      font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.5px}
+    .btn-gold{background:linear-gradient(125deg,#9A7018,#C9A030,#E0BC55,#C9A030,#9A7018);
+      background-size:200%;color:#050A14;box-shadow:0 2px 14px rgba(201,168,76,0.2)}
+    .btn-gold:hover{background-position:right;transform:translateY(-1px)}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+    .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+
+    .action-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+  </style>
+</head>
+<body>
+
+<div class="corner ctl"><svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0 L180 0 L180 7 L7 7 L7 180 L0 180 Z" fill="rgba(201,168,76,1)"/><circle cx="0" cy="0" r="50" stroke="rgba(201,168,76,0.4)" stroke-width="1" fill="none"/><circle cx="0" cy="0" r="100" stroke="rgba(201,168,76,0.2)" stroke-width=".5" fill="none"/></svg></div>
+<div class="corner cbr"><svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0 L180 0 L180 7 L7 7 L7 180 L0 180 Z" fill="rgba(201,168,76,1)"/><circle cx="0" cy="0" r="50" stroke="rgba(201,168,76,0.4)" stroke-width="1" fill="none"/><circle cx="0" cy="0" r="100" stroke="rgba(201,168,76,0.2)" stroke-width=".5" fill="none"/></svg></div>
+
+<div class="page">
+
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-icon">🛡</div>
+      <span class="logo-name">SecureID</span>
+    </div>
+    <p>System Health Check — verify everything is running before you use the app</p>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary checking" id="summary">
+    <div>
+      <div class="sum-title" id="sumTitle">🔄 Running checks…</div>
+      <div class="sum-sub" id="sumSub">Checking all services</div>
+    </div>
+    <button class="btn btn-ghost" onclick="runAll()">Re-run</button>
+  </div>
+
+  <!-- Terminal -->
+  <div class="panel">
+    <div class="panel-title">Live Check Log</div>
+    <div class="terminal" id="terminal"></div>
+    <div class="action-row">
+      <button class="btn btn-gold" onclick="runAll()">🔄 Run All Checks</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('terminal').innerHTML=''">Clear Log</button>
+      <button class="btn btn-ghost" onclick="location.href='index.html'">→ Go to App</button>
+    </div>
+  </div>
+
+  <!-- Check list -->
+  <div class="panel">
+    <div class="panel-title">Service Status</div>
+
+    <div class="ci">
+      <div class="ci-left">
+        <div class="ci-icon">🌐</div>
+        <div><div class="ci-name">Browser Support</div><div class="ci-desc">Modern browser with JS enabled</div></div>
+      </div>
+      <div class="sb sb-checking" id="st-browser">Checking…</div>
+    </div>
+
+    <div class="ci">
+      <div class="ci-left">
+        <div class="ci-icon">💾</div>
+        <div><div class="ci-name">LocalStorage</div><div class="ci-desc">Browser storage for session tokens</div></div>
+      </div>
+      <div class="sb sb-checking" id="st-storage">Checking…</div>
+    </div>
+
+    <div class="ci">
+      <div class="ci-left">
+        <div class="ci-icon">🚀</div>
+        <div><div class="ci-name">Backend Server</div><div class="ci-desc">Node.js Express API on port 5000</div></div>
+      </div>
+      <div class="sb sb-checking" id="st-backend">Checking…</div>
+    </div>
+
+    <div class="ci">
+      <div class="ci-left">
+        <div class="ci-icon">🗄</div>
+        <div><div class="ci-name">PostgreSQL Database</div><div class="ci-desc">Connected via Sequelize ORM</div></div>
+      </div>
+      <div class="sb sb-checking" id="st-db">Checking…</div>
+    </div>
+
+    <div class="ci">
+      <div class="ci-left">
+        <div class="ci-icon">🔐</div>
+        <div><div class="ci-name">Auth Endpoint</div><div class="ci-desc">Register & login API responding</div></div>
+      </div>
+      <div class="sb sb-checking" id="st-auth">Checking…</div>
+    </div>
+
+    <div class="ci">
+      <div class="ci-left">
+        <div class="ci-icon">📷</div>
+        <div><div class="ci-name">Camera Access</div><div class="ci-desc">Required for Face ID enrollment</div></div>
+      </div>
+      <div class="sb sb-checking" id="st-camera">Checking…</div>
+    </div>
+  </div>
+
+  <!-- Fix section -->
+  <div id="fixes"></div>
+
+</div>
+
+<script>
+const API = 'http://localhost:5000/api';
+const term = document.getElementById('terminal');
+let results = {};
+
+function log(text, cls='tdim') {
+  const t = new Date().toLocaleTimeString();
+  const d = document.createElement('div');
+  d.className = 'tl';
+  d.innerHTML = `<span class="tp">[${t}]</span><span class="${cls}">${text}</span>`;
+  term.appendChild(d);
+  term.scrollTop = term.scrollHeight;
+}
+
+function setStatus(id, state, text) {
+  const icons = {ok:'✅',fail:'❌',warn:'⚠️',checking:'⏳'};
+  const el = document.getElementById('st-'+id);
+  el.className = 'sb sb-'+state;
+  el.textContent = (icons[state]||'') + ' ' + text;
+  results[id] = state;
+}
+
+async function checkBrowser() {
+  log('Checking browser compatibility…');
+  const ok = typeof fetch!=='undefined' && typeof localStorage!=='undefined';
+  if (ok) { setStatus('browser','ok','Compatible'); log('✅ Browser: Modern browser detected','tok'); }
+  else    { setStatus('browser','fail','Incompatible'); log('❌ Browser: Please upgrade to Chrome, Firefox or Edge','terr'); }
+}
+
+async function checkStorage() {
+  log('Checking localStorage…');
+  try {
+    localStorage.setItem('__t__','1'); localStorage.removeItem('__t__');
+    setStatus('storage','ok','Available'); log('✅ LocalStorage: Working correctly','tok');
+  } catch(e) {
+    setStatus('storage','fail','Blocked');
+    log('❌ LocalStorage: Blocked — try disabling private/incognito mode','terr');
+  }
+}
+
+async function checkBackend() {
+  log('Pinging backend at http://localhost:5000…');
+  try {
+    const r = await fetch(`${API}/health`,{signal:AbortSignal.timeout(5000)});
+    const d = await r.json();
+    if (d.status==='ok') {
+      setStatus('backend','ok','Running');
+      setStatus('db','ok','Connected');
+      log(`✅ Backend: ${d.message}`,'tok');
+      log(`✅ PostgreSQL: Database connected and tables synced`,'tok');
+      return true;
+    }
+  } catch(e) {
+    setStatus('backend','fail','Not Running');
+    setStatus('db','warn','Unknown');
+    log('❌ Backend: Cannot reach server on port 5000','terr');
+    log('   → Run: cd secureid/backend-postgres && npm run dev','twarn');
+    log('   → Make sure PostgreSQL is running','twarn');
+    return false;
+  }
+}
+
+async function checkAuth() {
+  log('Testing auth endpoint…');
+  try {
+    const r = await fetch(`${API}/auth/login`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:'__test__@check.io',password:'wrongpw'}),
+      signal:AbortSignal.timeout(5000)
+    });
+    const d = await r.json();
+    if (r.status===401||d.message) {
+      setStatus('auth','ok','Responding');
+      log('✅ Auth: Endpoint responding correctly (401 = expected for test credentials)','tok');
+    } else {
+      setStatus('auth','warn','Unexpected');
+      log('⚠️ Auth: Unexpected response from auth endpoint','twarn');
+    }
+  } catch(e) {
+    setStatus('auth','fail','Unreachable');
+    log('❌ Auth: Cannot reach /api/auth/login','terr');
+  }
+}
+
+async function checkCamera() {
+  log('Checking camera availability…');
+  if (!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) {
+    setStatus('camera','warn','API Unavailable');
+    log('⚠️ Camera: Use localhost or HTTPS — not file:// — for camera access','twarn');
+    return;
+  }
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({video:true});
+    s.getTracks().forEach(t=>t.stop());
+    setStatus('camera','ok','Available');
+    log('✅ Camera: Webcam access granted','tok');
+  } catch(e) {
+    if (e.name==='NotAllowedError') {
+      setStatus('camera','fail','Permission Denied');
+      log('❌ Camera: Permission denied — click the camera icon in browser address bar','terr');
+    } else if (e.name==='NotFoundError') {
+      setStatus('camera','warn','No Webcam Found');
+      log('⚠️ Camera: No webcam detected — Face ID will not work but app will function','twarn');
+    } else {
+      setStatus('camera','warn','Error: '+e.message);
+      log('⚠️ Camera: '+e.message,'twarn');
+    }
+  }
+}
+
+function updateSummary() {
+  const sum = document.getElementById('summary');
+  const title = document.getElementById('sumTitle');
+  const sub = document.getElementById('sumSub');
+  const vals = Object.values(results);
+  const fixes = document.getElementById('fixes');
+
+  if (vals.includes('fail')) {
+    sum.className='summary fail';
+    title.textContent='❌ Issues Found';
+    sub.textContent='Fix the items below then re-run checks';
+    fixes.innerHTML = buildFixes();
+  } else if (vals.includes('warn')) {
+    sum.className='summary checking';
+    title.textContent='⚠️ Minor Warnings';
+    sub.textContent='App should work — some features may be limited';
+    fixes.innerHTML = buildFixes();
+  } else if (vals.length>=6) {
+    sum.className='summary ok';
+    title.textContent='✅ All Systems Ready';
+    sub.textContent='Everything is running — you can use SecureID now';
+    fixes.innerHTML='';
+  }
+}
+
+function buildFixes() {
+  let html = '';
+  if (results['backend']==='fail') html += `
+    <div class="fix">
+      <div class="fix-title">🔧 Fix: Backend Not Running</div>
+      <div class="fix-text">Open a terminal and run:</div>
+      <div class="fix-cmd">cd secureid/backend-postgres</div>
+      <div class="fix-cmd">npm install</div>
+      <div class="fix-cmd">npm run dev</div>
+      <div class="fix-text">Keep the terminal open. You should see "PostgreSQL connected".</div>
+    </div>`;
+  if (results['camera']==='fail') html += `
+    <div class="fix">
+      <div class="fix-title">🔧 Fix: Camera Permission Denied</div>
+      <div class="fix-text">Click the 🔒 icon in your browser's address bar → Allow camera access.</div>
+    </div>`;
+  if (results['camera']==='warn' && !results['camera']==='ok') html += `
+    <div class="fix">
+      <div class="fix-title">🔧 Fix: Open via a server (not file://)</div>
+      <div class="fix-text">Camera requires a real URL. Run:</div>
+      <div class="fix-cmd">cd secureid/frontend</div>
+      <div class="fix-cmd">python -m http.server 3000</div>
+      <div class="fix-text">Then open: http://localhost:3000</div>
+    </div>`;
+  return html;
+}
+
+async function runAll() {
+  results = {};
+  term.innerHTML = '';
+  document.getElementById('fixes').innerHTML = '';
+  ['browser','storage','backend','db','auth','camera'].forEach(id=>setStatus(id,'checking','Checking…'));
+
+  log('═══════════════════════════════════════','tdim');
+  log('  SecureID System Health Check','tc');
+  log('═══════════════════════════════════════','tdim');
+
+  await checkBrowser();
+  await checkStorage();
+  const backOk = await checkBackend();
+  if (backOk) await checkAuth(); else setStatus('auth','warn','Skipped');
+  await checkCamera();
+
+  log('═══════════════════════════════════════','tdim');
+  const fails = Object.values(results).filter(v=>v==='fail').length;
+  const warns = Object.values(results).filter(v=>v==='warn').length;
+  if (!fails&&!warns) log('🎉 All checks passed — SecureID is ready to use!','tok');
+  else if (!fails)    log(`⚠️  ${warns} warning(s) found — app works with limitations`,'twarn');
+  else                log(`❌  ${fails} failure(s) found — see fix cards above`,'terr');
+  log('═══════════════════════════════════════','tdim');
+
+  updateSummary();
+}
+
+window.addEventListener('load', runAll);
+</script>
+</body>
+</html>

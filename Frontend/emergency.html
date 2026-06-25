@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecureID — Emergency Freeze</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#08020E;--surface:#120818;--surface2:#180C22;
+      --red:#E05555;--red-lt:#FF8080;--red-dim:rgba(224,85,85,0.2);
+      --gold:#C9A84C;--gold-lt:#E8CC7A;
+      --safe:#4CAF82;
+      --text:#FFF0F0;--muted:#8A6A7A;
+      --border:rgba(224,85,85,0.18);
+    }
+
+    html,body{min-height:100vh;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+    /* Background — deep crimson atmosphere */
+    body::before{content:'';position:fixed;inset:0;z-index:0;
+      background:
+        radial-gradient(ellipse 70% 60% at 50% -10%,rgba(180,20,20,0.12) 0%,transparent 60%),
+        radial-gradient(ellipse 60% 50% at 50% 110%,rgba(100,10,50,0.15) 0%,transparent 55%),
+        linear-gradient(170deg,#050108 0%,#080210 40%,#060110 100%);
+      pointer-events:none}
+    body::after{content:'';position:fixed;inset:0;z-index:0;
+      background-image:linear-gradient(rgba(224,85,85,0.03) 1px,transparent 1px),
+                       linear-gradient(90deg,rgba(224,85,85,0.03) 1px,transparent 1px);
+      background-size:55px 55px;
+      mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 30%,transparent 100%);
+      pointer-events:none}
+
+    /* Pulsing danger glow */
+    .danger-glow{position:fixed;top:-100px;left:50%;transform:translateX(-50%);
+      width:800px;height:400px;
+      background:radial-gradient(ellipse,rgba(224,85,85,0.07) 0%,transparent 65%);
+      animation:dglow 2.5s ease-in-out infinite alternate;pointer-events:none;z-index:0}
+    @keyframes dglow{
+      from{opacity:.5;transform:translateX(-50%) scale(.95)}
+      to{opacity:1;transform:translateX(-50%) scale(1.05)}}
+
+    /* Corners */
+    .corner{position:fixed;z-index:0;opacity:.08}
+    .ctlx{top:0;left:0}.cbrx{bottom:0;right:0;transform:rotate(180deg)}
+    .corner svg{width:200px;height:200px}
+
+    /* Siren animation */
+    .siren{font-size:56px;animation:sirenPulse .9s ease-in-out infinite alternate;display:inline-block;margin-bottom:16px}
+    @keyframes sirenPulse{
+      from{transform:scale(1) rotate(-6deg);filter:drop-shadow(0 0 16px rgba(224,85,85,0.7))}
+      to{transform:scale(1.12) rotate(6deg);filter:drop-shadow(0 0 32px rgba(224,85,85,1))}}
+
+    /* Page wrap */
+    .wrap{position:relative;z-index:1;min-height:100vh;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:40px 24px}
+
+    /* Top back link */
+    .back-link{position:fixed;top:22px;left:28px;z-index:10;
+      display:flex;align-items:center;gap:8px;
+      font-size:12px;color:var(--muted);text-decoration:none;
+      padding:7px 14px;border-radius:9px;border:1px solid rgba(224,85,85,0.15);
+      background:rgba(8,2,14,0.7);backdrop-filter:blur(10px);
+      transition:all .2s;letter-spacing:.5px}
+    .back-link:hover{color:var(--text);border-color:var(--border)}
+
+    /* Logo bar */
+    .logo-bar{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+    .logo-shield{width:38px;height:38px;background:linear-gradient(145deg,#1A0A0A,#120508);
+      border:1px solid rgba(224,85,85,0.4);border-radius:11px;
+      display:flex;align-items:center;justify-content:center;font-size:18px}
+    .logo-text{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;
+      letter-spacing:3px;text-transform:uppercase;
+      background:linear-gradient(125deg,var(--gold),var(--gold-lt));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+    /* Main card */
+    .card{width:100%;max-width:480px;
+      background:rgba(18,8,24,0.8);
+      border:1px solid var(--border);border-radius:24px;
+      padding:40px;
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      box-shadow:0 0 0 1px rgba(224,85,85,0.05),0 40px 80px rgba(0,0,0,0.7),
+                 0 0 80px rgba(224,85,85,0.06)}
+    .card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(224,85,85,0.5),transparent)}
+
+    /* Step dots */
+    .dots{display:flex;gap:6px;margin-bottom:30px}
+    .dot{flex:1;height:3px;border-radius:2px;background:rgba(224,85,85,0.15);transition:background .3s}
+    .dot.active{background:var(--red)}
+    .dot.done{background:var(--safe)}
+
+    /* Step sections */
+    .step{display:none}
+    .step.on{display:block;animation:sfade .3s ease both}
+    @keyframes sfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+    .step-tag{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    .step-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:400;margin-bottom:18px}
+
+    /* Alert box */
+    .msg{display:none;padding:11px 15px;border-radius:10px;font-size:12.5px;
+      margin-bottom:18px;gap:8px;align-items:flex-start;line-height:1.5}
+    .msg.on{display:flex}
+    .msg-err{background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.25);color:var(--red-lt)}
+    .msg-ok{background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.25);color:#6FD9A6}
+
+    /* Fields */
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:9.5px;font-weight:600;letter-spacing:2px;
+      text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    .field-in{position:relative}
+    .field-ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.4}
+    input{width:100%;padding:13px 14px 13px 40px;
+      background:rgba(5,1,8,0.85);border:1px solid rgba(224,85,85,0.12);
+      border-radius:11px;color:var(--text);font-family:'Outfit',sans-serif;
+      font-size:14px;outline:none;transition:all .22s}
+    input::placeholder{color:rgba(138,106,122,.45);font-weight:300}
+    input:focus{border-color:rgba(224,85,85,.4);box-shadow:0 0 0 3px rgba(224,85,85,.06)}
+
+    /* Card items */
+    .card-item{display:flex;align-items:center;justify-content:space-between;
+      padding:14px 16px;border-radius:12px;margin-bottom:10px;
+      background:rgba(5,1,8,0.5);border:1px solid var(--border)}
+    .ci-num{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;letter-spacing:2px}
+    .ci-bank{font-size:11px;color:var(--muted);margin-top:2px;font-weight:300}
+    .ci-badge{padding:4px 10px;border-radius:50px;font-size:10px;font-weight:600;letter-spacing:1px}
+    .cib-active{background:rgba(76,175,130,0.12);color:var(--safe);border:1px solid rgba(76,175,130,0.25)}
+    .cib-frozen{background:rgba(224,85,85,0.12);color:var(--red-lt);border:1px solid rgba(224,85,85,0.25)}
+
+    /* Buttons */
+    .btn{width:100%;padding:15px;border:none;border-radius:12px;
+      font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;
+      letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .25s}
+    .btn-red{background:var(--red);color:#fff;
+      box-shadow:0 4px 24px rgba(224,85,85,0.3)}
+    .btn-red:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(224,85,85,0.5)}
+    .btn-red:disabled{opacity:.5;transform:none;cursor:not-allowed}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);margin-top:10px}
+    .btn-ghost:hover{border-color:rgba(224,85,85,.4)}
+
+    /* Success screen */
+    .success-screen{text-align:center;padding:10px 0}
+    .success-icon{font-size:68px;margin-bottom:18px;animation:popIn .5s cubic-bezier(0.34,1.56,0.64,1) both}
+    @keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+    .success-title{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:400;
+      color:var(--safe);margin-bottom:10px}
+    .success-sub{font-size:13px;color:var(--muted);line-height:1.7;font-weight:300;margin-bottom:28px}
+    .go-btn{display:block;width:100%;padding:14px;
+      background:linear-gradient(125deg,#9A7018,#C9A030,#E0BC55,#C9A030,#9A7018);
+      background-size:200%;border:none;border-radius:12px;
+      color:#050A14;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;
+      letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .3s;
+      text-decoration:none;text-align:center}
+    .go-btn:hover{background-position:right;transform:translateY(-2px);
+      box-shadow:0 8px 28px rgba(201,168,76,0.35)}
+
+
+    /* ── MOBILE RESPONSIVE ───────────────────────── */
+    @media (max-width: 600px) {
+      body { padding: 0; }
+      .wrap { padding: 20px 14px 40px; }
+      .card { padding: 28px 20px; border-radius: 18px; }
+      .step-title { font-size: 22px; }
+      .siren { font-size: 36px; margin-bottom: 10px; }
+      .wrap > div:nth-child(4) { margin-bottom: 20px; }
+      .wrap > div:nth-child(4) > div:first-child { font-size: 24px; }
+      input { font-size: 16px; } /* prevents iOS zoom */
+      .btn { padding: 14px; font-size: 11px; }
+      .logo-bar { margin-bottom: 10px; }
+      .success-icon { font-size: 52px; }
+      .success-title { font-size: 24px; }
+      .corner { display: none; }
+      .back-link { top: 14px; left: 14px; }
+    }
+    @media (max-width: 400px) {
+      .card { padding: 22px 14px; }
+      .step-title { font-size: 20px; }
+    }
+
+    /* Spinner */
+    .spin{display:inline-block;width:13px;height:13px;
+      border:2px solid rgba(255,255,255,.25);border-top-color:#fff;
+      border-radius:50%;animation:sp .65s linear infinite;
+      vertical-align:middle;margin-right:8px}
+    @keyframes sp{to{transform:rotate(360deg)}}
+  </style>
+  <script src="face-engine.js"></script>
+  <script src="face-modal.js"></script>
+</head>
+<body>
+
+<div class="danger-glow"></div>
+
+<!-- Corner frames -->
+<div class="corner ctlx"><svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0 L180 0 L180 8 L8 8 L8 180 L0 180 Z" fill="rgba(224,85,85,1)"/><circle cx="0" cy="0" r="50" stroke="rgba(224,85,85,0.5)" stroke-width="1" fill="none"/><circle cx="0" cy="0" r="100" stroke="rgba(224,85,85,0.25)" stroke-width="0.5" fill="none"/></svg></div>
+<div class="corner cbrx"><svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0 L180 0 L180 8 L8 8 L8 180 L0 180 Z" fill="rgba(224,85,85,1)"/><circle cx="0" cy="0" r="50" stroke="rgba(224,85,85,0.5)" stroke-width="1" fill="none"/><circle cx="0" cy="0" r="100" stroke="rgba(224,85,85,0.25)" stroke-width="0.5" fill="none"/></svg></div>
+
+<a href="index.html" class="back-link">← Back to Login</a>
+
+<div class="wrap">
+  <div class="logo-bar">
+    <div class="logo-shield">🛡</div>
+    <span class="logo-text">SecureID</span>
+  </div>
+
+  <div class="siren">🚨</div>
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:var(--red-lt);margin-bottom:8px">Emergency Card Freeze</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:300;line-height:1.6;max-width:380px">Freeze all your cards instantly from any device — no app needed. Just your email and password.</div>
+  </div>
+
+  <div class="card" style="position:relative">
+
+    <!-- Step progress dots -->
+    <div class="dots">
+      <div class="dot active" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+      <div class="dot" id="d4"></div>
+    </div>
+
+    <!-- STEP 1: Verify -->
+    <div class="step on" id="s1">
+      <div class="step-tag">Step 1 of 4</div>
+      <div class="step-title">Verify Your Identity</div>
+      <div class="msg" id="m1"></div>
+      <div class="field">
+        <label>Email Address</label>
+        <div class="field-in">
+          <span class="field-ico">✉</span>
+          <input type="email" id="eEmail" placeholder="your@email.com" autocomplete="email"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="field-in">
+          <span class="field-ico">🔑</span>
+          <input type="password" id="ePw" placeholder="Your password"/>
+        </div>
+      </div>
+      <button class="btn btn-red" id="btnVerify" onclick="eLogin()">Verify Identity →</button>
+    </div>
+
+    <!-- STEP 2: Face Verification -->
+    <div class="step" id="s2">
+      <div class="step-tag">Step 2 of 4</div>
+      <div class="step-title">Biometric Verification</div>
+      <div class="msg" id="m2"></div>
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:48px;margin-bottom:10px">👁</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;font-weight:300">
+          Your account has Face ID enabled.<br>
+          Please verify your face to continue.
+        </div>
+      </div>
+      <button class="btn btn-red" id="btnFaceScan" onclick="doFaceScan()">📷 Scan Face to Continue →</button>
+      <button class="btn btn-ghost" style="margin-top:10px" onclick="goStep(1)">← Back</button>
+    </div>
+
+    <!-- STEP 3: Review cards -->
+    <div class="step" id="s3">
+      <div class="step-tag">Step 3 of 4</div>
+      <div class="step-title">Your Linked Cards</div>
+      <div class="msg" id="m3"></div>
+      <div id="cardList" style="margin-bottom:18px"></div>
+      <button class="btn btn-red" id="btnFreeze" onclick="doFreeze()">🚨 Freeze All Cards Now</button>
+      <button class="btn btn-ghost" style="margin-top:10px" onclick="goStep(2)">← Back</button>
+    </div>
+
+    <!-- STEP 4: Done -->
+    <div class="step" id="s4">
+      <div class="success-screen">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Cards Frozen!</div>
+        <p class="success-sub" id="successMsg">All active cards have been frozen.<br>No transactions can go through.</p>
+        <a href="index.html" class="go-btn">Login to Dashboard</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:5000/api';
+let eToken = null;
+let eCards = [];
+let faceEnrolled = false;
+
+// ── Face Modal ────────────────────────────────────────────────────
+var _efm = null;
+function getEFM() {
+  if (!_efm) {
+    _efm = new FaceModal({
+      apiBase: API,
+      getToken: function() { return eToken || ''; }
+    });
+    _efm.init();
+  }
+  return _efm;
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('on'));
+  document.getElementById('s' + n).classList.add('on');
+  for (let i = 1; i <= 4; i++) {
+    const d = document.getElementById('d' + i);
+    if (d) d.className = 'dot' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+function showMsg(id, text, type) {
+  type = type || 'err';
+  const el = document.getElementById(id);
+  el.innerHTML = '<span>' + (type === 'err' ? '⚠' : '✓') + '</span><span>' + text + '</span>';
+  el.className = 'msg on msg-' + type;
+}
+
+function setBtn(id, loading, label) {
+  const b = document.getElementById(id);
+  b.disabled = loading;
+  b.innerHTML = loading ? '<span class="spin"></span>Processing…' : label;
+}
+
+// ── Step 1: Email + Password ──────────────────────────────────────
+async function eLogin() {
+  const email = document.getElementById('eEmail').value.trim();
+  const pw    = document.getElementById('ePw').value;
+  if (!email || !pw) return showMsg('m1', 'Please fill in both fields.');
+  setBtn('btnVerify', true);
+  try {
+    const r = await fetch(API + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw, deviceId: 'emergency_' + Date.now(), deviceName: 'Emergency Access' })
+    });
+    const d = await r.json();
+    if (!d.success) {
+      showMsg('m1', d.message || 'Login failed. Check your email and password.');
+      setBtn('btnVerify', false, 'Verify Identity →');
+    } else {
+      eToken = d.token;
+      faceEnrolled = (d.user && (d.user.faceEnrolled || d.user.face_enrolled)) ? true : false;
+
+      // Load cards in background
+      await loadCards();
+
+      if (faceEnrolled) {
+        // Has face enrolled — go to face verification step
+        setBtn('btnVerify', false, 'Verify Identity →');
+        goStep(2);
+        // Preload face engine in background
+        getEFM();
+      } else {
+        // No face enrolled — skip to cards step
+        setBtn('btnVerify', false, 'Verify Identity →');
+        goStep(3);
+      }
+    }
+  } catch(e) {
+    showMsg('m1', 'Cannot reach server. Is the backend running?');
+    setBtn('btnVerify', false, 'Verify Identity →');
+  }
+}
+
+// ── Step 2: Face Scan ─────────────────────────────────────────────
+function doFaceScan() {
+  showMsg('m2', '');
+  getEFM().verify(function(verified, similarity) {
+    if (verified) {
+      goStep(3);
+    } else {
+      showMsg('m2', 'Face not recognised (' + (similarity || '—') + '% match). Try again or contact your bank.');
+    }
+  });
+}
+
+// ── Step 3: Load cards ────────────────────────────────────────────
+async function loadCards() {
+  try {
+    const r = await fetch(API + '/cards', { headers: { 'Authorization': 'Bearer ' + eToken } });
+    const d = await r.json();
+    eCards = d.cards || [];
+    const el = document.getElementById('cardList');
+    if (!eCards.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;margin-bottom:10px">No cards linked to this account.</div>';
+      return;
+    }
+    el.innerHTML = eCards.map(function(card) {
+      return '<div class="card-item">' +
+        '<div>' +
+          '<div class="ci-num">' + card.masked + '</div>' +
+          '<div class="ci-bank">' + card.bank + ' · ' + card.cardType + '</div>' +
+        '</div>' +
+        '<div class="ci-badge ' + (card.status === 'frozen' ? 'cib-frozen' : 'cib-active') + '">' +
+          (card.status === 'frozen' ? '❄ Frozen' : '✅ Active') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    console.error('Load cards error:', e);
+  }
+}
+
+// ── Step 4: Freeze ────────────────────────────────────────────────
+async function doFreeze() {
+  setBtn('btnFreeze', true);
+  try {
+    const r = await fetch(API + '/cards/emergency-freeze', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + eToken, 'Content-Type': 'application/json' }
+    });
+    const d = await r.json();
+    if (d.success) {
+      document.getElementById('successMsg').textContent = d.frozenCount + ' card(s) have been frozen. Log into your dashboard to manage them.';
+      goStep(4);
+    } else {
+      showMsg('m3', d.message || 'Freeze failed. Please try again.');
+      setBtn('btnFreeze', false, '🚨 Freeze All Cards Now');
+    }
+  } catch(e) {
+    showMsg('m3', 'Server error. Please try again.');
+    setBtn('btnFreeze', false, '🚨 Freeze All Cards Now');
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    if (document.getElementById('s1').classList.contains('on')) eLogin();
+  }
+});
+</script>
+</body>
+</html>

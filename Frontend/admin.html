@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecureID — Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#02080F;--surface:#060F1E;--surface2:#0A1628;--surface3:#0E1C35;
+      --gold:#C9A84C;--gold-lt:#E8CC7A;
+      --red:#E05555;--safe:#4CAF82;--warn:#D4913A;--cyan:#38BDF8;
+      --text:#EEF2FF;--muted:#6B7FA8;--muted2:#3A4A6A;
+      --border:rgba(201,168,76,0.12);--border2:rgba(201,168,76,0.07);
+    }
+    html,body{min-height:100vh;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;z-index:0;
+      background:radial-gradient(ellipse 70% 50% at 50% -10%,rgba(201,168,76,0.04) 0%,transparent 60%);pointer-events:none}
+    body::after{content:'';position:fixed;inset:0;z-index:0;
+      background-image:linear-gradient(rgba(201,168,76,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.02) 1px,transparent 1px);
+      background-size:55px 55px;pointer-events:none}
+
+    /* ── LOGIN GATE ─────────────────────────────── */
+    .gate{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center}
+    .gate.hidden{display:none}
+    .gate-card{width:380px;background:rgba(6,15,30,0.95);border:1px solid var(--border);border-radius:22px;padding:40px;backdrop-filter:blur(20px);
+      box-shadow:0 40px 80px rgba(0,0,0,0.7),0 0 60px rgba(201,168,76,0.05)}
+    .gate-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent)}
+    .gate-logo{text-align:center;margin-bottom:28px}
+    .gate-logo-icon{width:56px;height:56px;background:linear-gradient(145deg,#0D1F4A,#091535);border:1px solid rgba(201,168,76,0.4);
+      border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:10px}
+    .gate-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;letter-spacing:3px;text-transform:uppercase;
+      background:linear-gradient(125deg,var(--gold),var(--gold-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .gate-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+    .gate-field{margin-bottom:16px}
+    .gate-field label{display:block;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+    .gate-field input{width:100%;padding:12px 14px;background:rgba(2,8,15,0.9);border:1px solid rgba(201,168,76,0.12);
+      border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:all .2s}
+    .gate-field input:focus{border-color:rgba(201,168,76,0.4);box-shadow:0 0 0 3px rgba(201,168,76,0.06)}
+    .gate-btn{width:100%;padding:13px;border:none;border-radius:10px;
+      background:linear-gradient(125deg,#9A7018,#C9A030,#E0BC55,#C9A030,#9A7018);background-size:200%;
+      color:#050A14;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+      cursor:pointer;transition:all .3s;margin-top:6px}
+    .gate-btn:hover{background-position:right;transform:translateY(-1px)}
+    .gate-err{color:var(--red);font-size:12px;text-align:center;margin-top:12px;min-height:18px}
+
+    /* ── NAV ─────────────────────────────────────── */
+    nav{position:sticky;top:0;z-index:200;height:60px;display:flex;align-items:center;justify-content:space-between;
+      padding:0 24px;background:rgba(2,8,15,0.92);backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
+    nav::after{content:'';position:absolute;bottom:0;left:5%;right:5%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.3),transparent)}
+    .nav-logo{display:flex;align-items:center;gap:10px}
+    .nav-logo-icon{width:32px;height:32px;background:linear-gradient(145deg,#0D1F4A,#091535);border:1px solid rgba(201,168,76,0.35);
+      border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px}
+    .nav-logo-text{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+      background:linear-gradient(125deg,var(--gold),var(--gold-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .admin-badge{padding:3px 10px;background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);border-radius:50px;
+      font-size:10px;font-weight:600;color:var(--red);letter-spacing:1.5px;text-transform:uppercase}
+    .nav-right{display:flex;align-items:center;gap:12px}
+    .critical-badge{position:relative;padding:6px 10px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.25);
+      border-radius:8px;font-size:13px;cursor:pointer;transition:all .2s}
+    .critical-badge:hover{border-color:var(--red)}
+    .crit-count{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:9px;font-weight:700;
+      min-width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;border:2px solid var(--bg)}
+    .crit-count.on{display:flex}
+    .sign-out{padding:6px 14px;background:transparent;border:1px solid rgba(201,168,76,0.2);border-radius:7px;
+      color:var(--gold);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s}
+    .sign-out:hover{background:rgba(201,168,76,0.08)}
+
+    /* ── SHELL ───────────────────────────────────── */
+    .shell{display:grid;grid-template-columns:210px 1fr;min-height:calc(100vh - 60px);position:relative;z-index:1}
+
+    /* ── SIDEBAR ─────────────────────────────────── */
+    aside{background:rgba(6,15,30,0.7);border-right:1px solid var(--border);padding:20px 12px;
+      position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;display:flex;flex-direction:column;backdrop-filter:blur(10px)}
+    .ns{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted2);padding:14px 10px 7px;font-weight:600}
+    .ni{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:10px;cursor:pointer;
+      font-size:12px;color:var(--muted);transition:all .2s;margin-bottom:2px;border:1px solid transparent}
+    .ni:hover{background:var(--surface2);color:var(--text)}
+    .ni.active{background:rgba(201,168,76,0.08);color:var(--gold-lt);border-color:rgba(201,168,76,0.18)}
+    .ni .ico{font-size:15px;width:20px;text-align:center}
+    .danger-zone{margin-top:auto;padding:14px;background:rgba(224,85,85,0.06);border:1px solid rgba(224,85,85,0.25);
+      border-radius:12px;text-align:center}
+    .dz-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:8px;font-weight:600}
+    .dz-btn{width:100%;padding:9px;border:1px solid rgba(224,85,85,0.3);border-radius:8px;background:transparent;
+      color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s;margin-bottom:6px}
+    .dz-btn:hover{background:rgba(224,85,85,0.1)}
+    .dz-btn:last-child{margin-bottom:0}
+
+    /* ── MAIN ────────────────────────────────────── */
+    main{padding:28px 32px;overflow-y:auto}
+    .page{display:none;animation:pf .3s ease both}
+    .page.active{display:block}
+    @keyframes pf{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px}
+    .ph-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:400;letter-spacing:-.3px}
+    .ph-sub{font-size:12px;color:var(--muted);margin-top:3px;font-weight:300}
+
+    /* ── STAT CARDS ──────────────────────────────── */
+    .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+    .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}
+    .sc{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+    .sc::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.15),transparent)}
+    .sc:hover{border-color:rgba(201,168,76,0.22)}
+    .sc-ico{font-size:20px;margin-bottom:10px}
+    .sc-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+    .sc-val{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:300;line-height:1;margin-bottom:3px}
+    .sc-sub{font-size:10px;color:var(--muted);font-weight:300}
+    .sc.gold .sc-val{background:linear-gradient(125deg,var(--gold),var(--gold-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .sc.red  .sc-val{color:var(--red)}
+    .sc.safe .sc-val{color:var(--safe)}
+    .sc.cyan .sc-val{color:var(--cyan)}
+    .sc.warn .sc-val{color:var(--warn)}
+
+    /* ── PANEL ───────────────────────────────────── */
+    .panel{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:22px;margin-bottom:18px;position:relative;overflow:hidden}
+    .panel::before{content:'';position:absolute;top:0;left:5%;right:5%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.1),transparent)}
+    .pt{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;margin-bottom:16px}
+
+    /* ── TABLE ───────────────────────────────────── */
+    .tbl-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th{text-align:left;padding:10px 12px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+      color:var(--muted);border-bottom:1px solid var(--border2);font-weight:600}
+    td{padding:11px 12px;border-bottom:1px solid rgba(201,168,76,0.04);vertical-align:middle}
+    tr:hover td{background:rgba(201,168,76,0.02)}
+    tr:last-child td{border-bottom:none}
+    .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#8A6020);
+      display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0A0D14;margin-right:8px}
+
+    /* ── BADGES ──────────────────────────────────── */
+    .badge{padding:3px 9px;border-radius:50px;font-size:10px;font-weight:600;letter-spacing:.5px;display:inline-block}
+    .b-active{background:rgba(76,175,130,0.1);color:var(--safe);border:1px solid rgba(76,175,130,0.25)}
+    .b-locked{background:rgba(212,145,58,0.1);color:var(--warn);border:1px solid rgba(212,145,58,0.25)}
+    .b-suspended{background:rgba(224,85,85,0.1);color:var(--red);border:1px solid rgba(224,85,85,0.25)}
+    .b-frozen{background:rgba(56,189,248,0.1);color:var(--cyan);border:1px solid rgba(56,189,248,0.25)}
+    .b-info{background:rgba(201,168,76,0.1);color:var(--gold);border:1px solid rgba(201,168,76,0.2)}
+    .b-warning{background:rgba(212,145,58,0.1);color:var(--warn);border:1px solid rgba(212,145,58,0.25)}
+    .b-critical{background:rgba(224,85,85,0.1);color:var(--red);border:1px solid rgba(224,85,85,0.25)}
+    .b-success{background:rgba(76,175,130,0.1);color:var(--safe);border:1px solid rgba(76,175,130,0.25)}
+    .b-declined{background:rgba(224,85,85,0.08);color:var(--red);border:1px solid rgba(224,85,85,0.2)}
+    .b-yes{background:rgba(76,175,130,0.1);color:var(--safe);font-size:9px}
+    .b-no{background:rgba(107,127,168,0.1);color:var(--muted);font-size:9px}
+
+    /* ── BUTTONS ─────────────────────────────────── */
+    .btn{padding:7px 14px;border:none;border-radius:8px;font-family:'Outfit',sans-serif;
+      font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.5px}
+    .btn-gold{background:linear-gradient(125deg,#9A7018,#C9A030,#E0BC55,#C9A030,#9A7018);background-size:200%;color:#050A14}
+    .btn-gold:hover{background-position:right;transform:translateY(-1px)}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+    .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-red{background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.25);color:var(--red)}
+    .btn-red:hover{background:rgba(224,85,85,0.2)}
+    .btn-safe{background:rgba(76,175,130,0.1);border:1px solid rgba(76,175,130,0.25);color:var(--safe)}
+    .btn-safe:hover{background:rgba(76,175,130,0.2)}
+    .btn-sm{padding:5px 10px;font-size:10px}
+    .btn-xs{padding:3px 8px;font-size:10px;border-radius:6px}
+
+    /* ── SEARCH / FILTER ─────────────────────────── */
+    .filters{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+    .search-wrap{position:relative;flex:1;min-width:200px}
+    .search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.5}
+    .filter-input{width:100%;padding:9px 12px 9px 34px;background:rgba(2,8,15,0.8);border:1px solid var(--border2);
+      border-radius:9px;color:var(--text);font-family:'Outfit',sans-serif;font-size:12px;outline:none;transition:all .2s}
+    .filter-input:focus{border-color:rgba(201,168,76,0.35)}
+    .filter-select{padding:9px 12px;background:rgba(2,8,15,0.8);border:1px solid var(--border2);
+      border-radius:9px;color:var(--text);font-family:'Outfit',sans-serif;font-size:12px;outline:none;
+      cursor:pointer;transition:all .2s}
+    .filter-select option{background:#060F1E}
+    .filter-select:focus{border-color:rgba(201,168,76,0.35)}
+
+    /* ── MODAL ───────────────────────────────────── */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(14px);z-index:1000;display:none;align-items:center;justify-content:center}
+    .modal-bg.on{display:flex}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;
+      max-width:520px;width:92%;max-height:85vh;overflow-y:auto;position:relative;
+      box-shadow:0 40px 80px rgba(0,0,0,0.7)}
+    .modal::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.4),transparent)}
+    .modal h2{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;margin-bottom:16px}
+    .modal-field{margin-bottom:14px}
+    .modal-field label{display:block;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+    .modal-field input,.modal-field textarea,.modal-field select{width:100%;padding:10px 13px;background:rgba(2,8,15,0.9);
+      border:1px solid rgba(201,168,76,0.1);border-radius:9px;color:var(--text);font-family:'Outfit',sans-serif;
+      font-size:13px;outline:none;transition:all .2s;resize:vertical}
+    .modal-field input:focus,.modal-field textarea:focus,.modal-field select:focus{border-color:rgba(201,168,76,0.4)}
+    .modal-btns{display:flex;gap:10px;margin-top:20px}
+    .modal-btns .btn{flex:1}
+    .user-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+    .ud-card{background:rgba(2,8,15,0.5);border:1px solid var(--border2);border-radius:10px;padding:12px}
+    .ud-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+    .ud-val{font-size:13px;color:var(--text);font-weight:500}
+
+    /* ── ACTIVITY FEED ───────────────────────────── */
+    .feed-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2)}
+    .feed-item:last-child{border-bottom:none}
+    .feed-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+    .fd-info{background:var(--gold)}
+    .fd-warning{background:var(--warn)}
+    .fd-critical{background:var(--red);box-shadow:0 0 8px rgba(224,85,85,0.4)}
+    .feed-msg{font-size:12px;line-height:1.55}
+    .feed-meta{font-size:10px;color:var(--muted);margin-top:2px}
+
+    /* ── TOAST ───────────────────────────────────── */
+    #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 18px;border-radius:11px;
+      font-size:12px;font-weight:500;max-width:320px;transform:translateY(60px);opacity:0;
+      transition:all .3s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;font-family:'Outfit',sans-serif}
+    #toast.on{transform:translateY(0);opacity:1}
+    #toast.success{background:rgba(76,175,130,0.12);border:1px solid rgba(76,175,130,0.3);color:var(--safe)}
+    #toast.error{background:rgba(224,85,85,0.12);border:1px solid rgba(224,85,85,0.3);color:var(--red)}
+    #toast.warning{background:rgba(212,145,58,0.12);border:1px solid rgba(212,145,58,0.3);color:var(--warn)}
+
+    /* ── SCROLLBAR ───────────────────────────────── */
+
+    /* ── MOBILE RESPONSIVE ─────────────────────────────────── */
+    @media (max-width: 768px) {
+      .shell { grid-template-columns: 1fr; }
+      aside {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        height: auto; flex-direction: row; overflow-x: auto;
+        padding: 8px 10px; border-top: 1px solid var(--border);
+        border-right: none; z-index: 100;
+        background: rgba(2,8,15,0.97);
+        scrollbar-width: none;
+      }
+      aside::-webkit-scrollbar { display: none; }
+      .ns { display: none; }
+      .danger-zone { display: none; }
+      .ni { flex-direction: column; gap: 3px; padding: 8px 12px;
+        font-size: 10px; border-radius: 10px; min-width: 64px;
+        text-align: center; white-space: nowrap; flex-shrink: 0; }
+      .ni .ico { font-size: 18px; width: auto; }
+      main { padding: 16px 14px 90px; }
+      .g4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .g3 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .g2 { grid-template-columns: 1fr; gap: 12px; }
+      .ph { flex-direction: column; gap: 10px; align-items: flex-start; }
+      .ph-title { font-size: 22px; }
+      .sc { padding: 14px; }
+      .sc-val { font-size: 26px; }
+      .filters { flex-direction: column; }
+      .search-wrap { min-width: unset; }
+      nav { padding: 0 14px; }
+      .nav-logo-text { font-size: 14px; }
+      .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 520px; }
+      .modal { padding: 26px 18px; max-height: 92vh; }
+      .user-detail-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .g4 { grid-template-columns: 1fr 1fr; }
+      .sc-val { font-size: 22px; }
+      .admin-badge { display: none; }
+      .nav-logo-text { font-size: 13px; }
+      main { padding: 12px 10px 90px; }
+      .panel { padding: 14px 12px; }
+    }
+
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+
+    /* ── SPINNER ─────────────────────────────────── */
+    .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.2);
+      border-top-color:currentColor;border-radius:50%;animation:sp .65s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes sp{to{transform:rotate(360deg)}}
+
+    .empty{color:var(--muted);font-size:13px;padding:20px;text-align:center;font-weight:300}
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN GATE ─────────────────────────────────── -->
+<div class="gate" id="gate">
+  <div class="gate-card" style="position:relative">
+    <div class="gate-logo">
+      <div class="gate-logo-icon">🛡</div>
+      <div class="gate-title">SecureID</div>
+      <div class="gate-sub">Administrator Panel</div>
+    </div>
+    <div class="gate-field">
+      <label>Admin Secret Key</label>
+      <input type="password" id="gateKey" placeholder="Enter admin key" autocomplete="off"/>
+    </div>
+    <button class="gate-btn" onclick="gateLogin()">Enter Admin Panel</button>
+    <div class="gate-err" id="gateErr"></div>
+    <div style="text-align:center;margin-top:16px">
+      <a href="index.html" style="font-size:11px;color:var(--muted);text-decoration:none">← Back to user login</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── NAV ───────────────────────────────────────── -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">🛡</div>
+    <span class="nav-logo-text">SecureID</span>
+    <div class="admin-badge">ADMIN</div>
+  </div>
+  <div class="nav-right">
+    <div class="critical-badge" onclick="showPage('alerts')" title="Critical Alerts">
+      🚨 <div class="crit-count" id="critCount"></div>
+    </div>
+    <button class="sign-out" onclick="signOut()">Sign Out</button>
+  </div>
+</nav>
+
+<!-- ── SHELL ─────────────────────────────────────── -->
+<div class="shell">
+  <aside>
+    <div class="ns">Overview</div>
+    <div class="ni active" id="nav-overview" onclick="showPage('overview')"><span class="ico">📊</span> Dashboard</div>
+    <div class="ni" id="nav-feed" onclick="showPage('feed')"><span class="ico">⚡</span> Live Activity</div>
+
+    <div class="ns">Data</div>
+    <div class="ni" id="nav-users" onclick="showPage('users')"><span class="ico">👥</span> All Users</div>
+    <div class="ni" id="nav-cards" onclick="showPage('cards')"><span class="ico">💳</span> All Cards</div>
+    <div class="ni" id="nav-transactions" onclick="showPage('transactions')"><span class="ico">🧪</span> Transactions</div>
+    <div class="ni" id="nav-alerts" onclick="showPage('alerts')"><span class="ico">🔔</span> All Alerts</div>
+
+    <div class="danger-zone">
+      <div class="dz-title">⚠ Danger Zone</div>
+      <button class="dz-btn" onclick="openBroadcast()">📢 Broadcast Alert</button>
+      <button class="dz-btn" onclick="openSystemFreeze()">🚨 System-Wide Freeze</button>
+      <button class="dz-btn" style="border-color:rgba(76,175,130,0.35);color:var(--safe)" onclick="openSystemUnfreeze()">✅ System-Wide Unfreeze</button>
+    </div>
+  </aside>
+
+  <main>
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="ph">
+        <div>
+          <div class="ph-title">Admin Dashboard</div>
+          <div class="ph-sub">Full system overview — all users, cards and security events</div>
+        </div>
+        <button class="btn btn-ghost" onclick="loadAll()">🔄 Refresh</button>
+      </div>
+
+      <div class="g4">
+        <div class="sc gold"><div class="sc-ico">👥</div><div class="sc-lbl">Total Users</div><div class="sc-val" id="sUsers">—</div><div class="sc-sub" id="sUsersNew">Loading...</div></div>
+        <div class="sc safe"><div class="sc-ico">💳</div><div class="sc-lbl">Total Cards</div><div class="sc-val" id="sCards">—</div><div class="sc-sub" id="sCardsActive">Loading...</div></div>
+        <div class="sc red"><div class="sc-ico">🔔</div><div class="sc-lbl">Unread Alerts</div><div class="sc-val" id="sAlerts">—</div><div class="sc-sub" id="sAlertsCrit">Loading...</div></div>
+        <div class="sc cyan"><div class="sc-ico">🧪</div><div class="sc-lbl">Transactions</div><div class="sc-val" id="sTxn">—</div><div class="sc-sub" id="sTxnRate">Loading...</div></div>
+      </div>
+
+      <div class="g4">
+        <div class="sc"><div class="sc-ico">✅</div><div class="sc-lbl">Active Users</div><div class="sc-val" id="sActive">—</div><div class="sc-sub">Normal status</div></div>
+        <div class="sc warn"><div class="sc-ico">🔒</div><div class="sc-lbl">Locked Users</div><div class="sc-val" id="sLocked">—</div><div class="sc-sub">Failed logins</div></div>
+        <div class="sc red"><div class="sc-ico">🚫</div><div class="sc-lbl">Suspended</div><div class="sc-val" id="sSuspended">—</div><div class="sc-sub">Admin action</div></div>
+        <div class="sc cyan"><div class="sc-ico">👁</div><div class="sc-lbl">Face Enrolled</div><div class="sc-val" id="sFace">—</div><div class="sc-sub">Biometric active</div></div>
+      </div>
+
+      <div class="g2">
+        <div class="panel">
+          <div class="pt">Recent Activity</div>
+          <div id="overviewFeed"><div class="empty">Loading activity...</div></div>
+        </div>
+        <div class="panel">
+          <div class="pt">Quick Actions</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-ghost" style="width:100%;text-align:left;padding:12px 16px" onclick="showPage('users')">
+              👥 Manage All Users →
+            </button>
+            <button class="btn btn-ghost" style="width:100%;text-align:left;padding:12px 16px" onclick="showPage('cards')">
+              💳 Manage All Cards →
+            </button>
+            <button class="btn btn-ghost" style="width:100%;text-align:left;padding:12px 16px" onclick="showPage('alerts')">
+              🔔 View All Security Alerts →
+            </button>
+            <button class="btn btn-ghost" style="width:100%;text-align:left;padding:12px 16px" onclick="showPage('transactions')">
+              🧪 Transaction Log →
+            </button>
+            <button class="btn btn-red" style="width:100%;text-align:left;padding:12px 16px" onclick="openBroadcast()">
+              📢 Send Broadcast to All Users →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE ACTIVITY FEED -->
+    <div class="page" id="page-feed">
+      <div class="ph">
+        <div><div class="ph-title">Live Activity Feed</div><div class="ph-sub">Real-time security events across all accounts</div></div>
+        <button class="btn btn-ghost" onclick="loadFeed()">🔄 Refresh</button>
+      </div>
+      <div class="panel">
+        <div id="feedList"><div class="empty">Loading feed...</div></div>
+      </div>
+    </div>
+
+    <!-- ALL USERS -->
+    <div class="page" id="page-users">
+      <div class="ph">
+        <div><div class="ph-title">All Users</div><div class="ph-sub">Manage every registered account</div></div>
+      </div>
+      <div class="filters">
+        <div class="search-wrap">
+          <span class="search-ico">🔍</span>
+          <input class="filter-input" id="userSearch" placeholder="Search name or email..." oninput="loadUsers()"/>
+        </div>
+        <select class="filter-select" id="userStatus" onchange="loadUsers()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="locked">Locked</option>
+          <option value="suspended">Suspended</option>
+        </select>
+        <button class="btn btn-ghost" onclick="loadUsers()">🔄</button>
+      </div>
+      <div class="panel">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>User</th><th>Email</th><th>Status</th><th>Face</th>
+              <th>Cards</th><th>Devices</th><th>Joined</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="usersTable"><tr><td colspan="8" class="empty">Loading users...</td></tr></tbody>
+          </table>
+        </div>
+        <div id="usersPagination" style="margin-top:16px;display:flex;gap:8px;align-items:center"></div>
+      </div>
+    </div>
+
+    <!-- ALL CARDS -->
+    <div class="page" id="page-cards">
+      <div class="ph">
+        <div><div class="ph-title">All Cards</div><div class="ph-sub">Monitor and control every linked card</div></div>
+      </div>
+      <div class="filters">
+        <select class="filter-select" id="cardStatus" onchange="loadCards()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="frozen">Frozen</option>
+          <option value="blocked">Blocked</option>
+        </select>
+        <button class="btn btn-ghost" onclick="loadCards()">🔄 Refresh</button>
+      </div>
+      <div class="panel">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Card</th><th>Owner</th><th>Bank</th><th>Type</th>
+              <th>Status</th><th>Frozen At</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="cardsTable"><tr><td colspan="7" class="empty">Loading cards...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="page" id="page-transactions">
+      <div class="ph">
+        <div><div class="ph-title">Transaction Log</div><div class="ph-sub">All simulated ATM / POS transactions</div></div>
+        <button class="btn btn-ghost" onclick="loadTransactions()">🔄 Refresh</button>
+      </div>
+      <div class="filters">
+        <select class="filter-select" id="txnStatus" onchange="loadTransactions()">
+          <option value="">All</option>
+          <option value="success">Approved</option>
+          <option value="declined">Declined</option>
+        </select>
+      </div>
+      <div class="panel">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Card</th><th>User</th><th>Bank</th><th>Amount</th>
+              <th>Description</th><th>Status</th><th>Date</th>
+            </tr></thead>
+            <tbody id="txnTable"><tr><td colspan="7" class="empty">Loading transactions...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="page" id="page-alerts">
+      <div class="ph">
+        <div><div class="ph-title">Security Alerts</div><div class="ph-sub">Every security event across all accounts</div></div>
+        <button class="btn btn-ghost" onclick="loadAlerts()">🔄 Refresh</button>
+      </div>
+      <div class="filters">
+        <select class="filter-select" id="alertSeverity" onchange="loadAlerts()">
+          <option value="">All Severity</option>
+          <option value="critical">Critical</option>
+          <option value="warning">Warning</option>
+          <option value="info">Info</option>
+        </select>
+      </div>
+      <div class="panel">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>User</th><th>Type</th><th>Message</th><th>Severity</th><th>Date</th>
+            </tr></thead>
+            <tbody id="alertsTable"><tr><td colspan="5" class="empty">Loading alerts...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- USER DETAIL MODAL -->
+<div class="modal-bg" id="userModal">
+  <div class="modal" style="max-width:620px">
+    <h2 id="modalUserName">User Details</h2>
+    <div class="user-detail-grid" id="modalUserInfo"></div>
+    <div class="pt" style="font-size:14px;margin-bottom:10px">Cards</div>
+    <div id="modalUserCards" style="margin-bottom:16px"></div>
+    <div class="pt" style="font-size:14px;margin-bottom:10px">Recent Alerts</div>
+    <div id="modalUserAlerts"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('userModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- SYSTEM UNFREEZE MODAL -->
+<div class="modal-bg" id="unfreezeModal">
+  <div class="modal" style="max-width:400px">
+    <div style="font-size:44px;margin-bottom:12px">✅</div>
+    <h2 style="color:var(--safe)">System-Wide Unfreeze</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+      This will unfreeze <strong style="color:var(--text)">every frozen card</strong> across all user accounts. All transactions will be re-enabled.
+    </p>
+    <div class="modal-field">
+      <label>Reason</label>
+      <input type="text" id="unfreezeReason" placeholder="e.g. Emergency resolved — restoring normal service"/>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('unfreezeModal')">Cancel</button>
+      <button class="btn btn-safe" style="font-weight:700" onclick="executeSystemUnfreeze()">✅ Unfreeze All Cards Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- BROADCAST MODAL -->
+<div class="modal-bg" id="broadcastModal">
+  <div class="modal">
+    <h2>📢 Broadcast Alert to All Users</h2>
+    <div class="modal-field">
+      <label>Message</label>
+      <textarea id="bcastMsg" rows="3" placeholder="Enter security notice to send to all users..."></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Severity</label>
+      <select id="bcastSev">
+        <option value="info">Info</option>
+        <option value="warning">Warning</option>
+        <option value="critical">Critical</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('broadcastModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="sendBroadcast()">Send to All Users</button>
+    </div>
+  </div>
+</div>
+
+<!-- SYSTEM FREEZE MODAL -->
+<div class="modal-bg" id="freezeModal">
+  <div class="modal">
+    <div style="font-size:44px;margin-bottom:12px">🚨</div>
+    <h2 style="color:var(--red)">System-Wide Emergency Freeze</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+      This will immediately freeze <strong style="color:var(--text)">every active card</strong> across all user accounts. All transactions will be declined. All users will receive a critical alert.
+    </p>
+    <div class="modal-field">
+      <label>Reason (shown to users)</label>
+      <input type="text" id="freezeReason" placeholder="e.g. Security maintenance — all cards temporarily frozen"/>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('freezeModal')">Cancel</button>
+      <button class="btn btn-red" style="font-weight:700" onclick="executeSystemFreeze()">🚨 Freeze All Cards Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE STATUS MODAL -->
+<div class="modal-bg" id="statusModal">
+  <div class="modal" style="max-width:400px">
+    <h2>Change Account Status</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px" id="statusModalDesc"></p>
+    <div class="modal-field">
+      <label>New Status</label>
+      <select id="newStatusVal">
+        <option value="active">Active</option>
+        <option value="locked">Locked</option>
+        <option value="suspended">Suspended</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('statusModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitStatusChange()">Update Status</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API      = 'http://127.0.0.1:5000/api/admin';
+let ADMIN_KEY  = '';
+let currentStatusUserId = null;
+let usersPage  = 1;
+
+// ── Gate ──────────────────────────────────────────────────────────
+async function gateLogin() {
+  const key = document.getElementById('gateKey').value.trim();
+  const errEl = document.getElementById('gateErr');
+  if (!key) { errEl.textContent = 'Please enter the admin key.'; return; }
+
+  errEl.textContent = 'Connecting…';
+  errEl.style.color = '#C9A84C';
+
+  try {
+    // First check if server is reachable at all
+    const healthCheck = await fetch('http://127.0.0.1:5000/api/health', {
+      signal: AbortSignal.timeout(4000)
+    }).catch(() => null);
+
+    if (!healthCheck || !healthCheck.ok) {
+      errEl.style.color = '#E05555';
+      errEl.textContent = '❌ Backend not running. Open terminal → cd backend-postgres → npm run dev';
+      return;
+    }
+
+    // Server is up — now test the admin key
+    const r = await fetch(API + '/stats', {
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': key },
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (r.ok) {
+      ADMIN_KEY = key;
+      sessionStorage.setItem('admin_key', key);
+      errEl.textContent = '';
+      document.getElementById('gate').classList.add('hidden');
+      loadAll();
+    } else if (r.status === 403) {
+      errEl.style.color = '#E05555';
+      errEl.textContent = '❌ Wrong key. Check ADMIN_KEY in backend-postgres/.env (default: secureid_admin_2025)';
+    } else {
+      errEl.style.color = '#E05555';
+      errEl.textContent = '❌ Server error ' + r.status + '. Check backend terminal.';
+    }
+  } catch (e) {
+    errEl.style.color = '#E05555';
+    if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+      errEl.textContent = '❌ Server timeout. Is backend running? (npm run dev in backend-postgres)';
+    } else {
+      errEl.textContent = '❌ Cannot connect: ' + e.message;
+    }
+  }
+}
+
+function openSystemUnfreeze() { openModal('unfreezeModal'); }
+
+async function executeSystemUnfreeze() {
+  const reason = document.getElementById('unfreezeReason').value.trim();
+  if (!confirm('Unfreeze ALL frozen cards in the entire system?')) return;
+  try {
+    const r = await fetch('http://127.0.0.1:5000/api/admin/system-unfreeze', {
+      method: 'POST', headers: AH(),
+      body: JSON.stringify({ reason: reason || 'System-wide unfreeze by administrator' })
+    });
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ ' + d.count + ' card(s) unfrozen system-wide!', 'success');
+      closeModal('unfreezeModal');
+      loadStats(); loadCards();
+    } else {
+      toast(d.message || 'Unfreeze failed', 'error');
+    }
+  } catch(e) { toast('System unfreeze failed', 'error'); }
+}
+
+function signOut() {
+  sessionStorage.removeItem('admin_key');
+  ADMIN_KEY = '';
+  document.getElementById('gateKey').value = '';
+  document.getElementById('gateErr').textContent = '';
+  document.getElementById('gate').classList.remove('hidden');
+}
+
+// Check for saved key on load
+window.addEventListener('load', async () => {
+  const saved = sessionStorage.getItem('admin_key');
+  if (saved) {
+    try {
+      const r = await fetch(API + '/stats', {
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': saved },
+        signal: AbortSignal.timeout(3000)
+      });
+      if (r.ok) { ADMIN_KEY = saved; document.getElementById('gate').classList.add('hidden'); loadAll(); return; }
+    } catch (e) {}
+    sessionStorage.removeItem('admin_key');
+  }
+});
+
+// ── Helpers ───────────────────────────────────────────────────────
+function AH() { return { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY }; }
+
+let tTimer;
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'on ' + type;
+  clearTimeout(tTimer);
+  tTimer = setTimeout(() => el.classList.remove('on'), 3500);
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const ni = document.getElementById('nav-' + name);
+  if (ni) ni.classList.add('active');
+  if (name === 'users')        loadUsers();
+  if (name === 'cards')        loadCards();
+  if (name === 'transactions') loadTransactions();
+  if (name === 'alerts')       loadAlerts();
+  if (name === 'feed')         loadFeed();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('on'); }
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+function fmtDate(d) { return d ? new Date(d).toLocaleString() : '—'; }
+function fmtAmt(a)  { return '₦' + Number(a).toLocaleString(); }
+
+function statusBadge(s) {
+  const map = { active:'b-active', locked:'b-locked', suspended:'b-suspended', frozen:'b-frozen', blocked:'b-frozen' };
+  return '<span class="badge ' + (map[s]||'b-info') + '">' + s + '</span>';
+}
+function sevBadge(s) {
+  const map = { info:'b-info', warning:'b-warning', critical:'b-critical' };
+  return '<span class="badge ' + (map[s]||'b-info') + '">' + s + '</span>';
+}
+
+// ── Load All ──────────────────────────────────────────────────────
+function loadAll() { loadStats(); loadOverviewFeed(); }
+
+// ── Stats ─────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await fetch(API + '/stats', { headers: AH() });
+    const d = await r.json();
+    if (!d.success) return;
+    const { users, cards, alerts, transactions } = d.stats;
+
+    document.getElementById('sUsers').textContent    = users.total;
+    document.getElementById('sUsersNew').textContent = '+' + users.newToday + ' today, +' + users.newWeek + ' this week';
+    document.getElementById('sCards').textContent    = cards.total;
+    document.getElementById('sCardsActive').textContent = cards.active + ' active, ' + cards.frozen + ' frozen';
+    document.getElementById('sAlerts').textContent   = alerts.unread;
+    document.getElementById('sAlertsCrit').textContent = alerts.critical + ' critical unread';
+    document.getElementById('sTxn').textContent      = transactions.total;
+    const rate = transactions.total > 0 ? Math.round(transactions.success / transactions.total * 100) : 0;
+    document.getElementById('sTxnRate').textContent  = rate + '% approval rate';
+    document.getElementById('sActive').textContent   = users.active;
+    document.getElementById('sLocked').textContent   = users.locked;
+    document.getElementById('sSuspended').textContent= users.suspended;
+    document.getElementById('sFace').textContent     = users.faceEnrolled;
+
+    const crit = document.getElementById('critCount');
+    crit.textContent = alerts.critical;
+    crit.classList.toggle('on', alerts.critical > 0);
+  } catch (e) { console.error('Stats error:', e); }
+}
+
+// ── Overview feed ─────────────────────────────────────────────────
+async function loadOverviewFeed() {
+  try {
+    const r = await fetch(API + '/activity-feed', { headers: AH() });
+    const d = await r.json();
+    const el = document.getElementById('overviewFeed');
+    if (!d.success || !d.feed.length) { el.innerHTML = '<div class="empty">No activity yet.</div>'; return; }
+    el.innerHTML = d.feed.slice(0,8).map(feedItemHTML).join('');
+  } catch (e) {}
+}
+
+async function loadFeed() {
+  try {
+    const r = await fetch(API + '/activity-feed', { headers: AH() });
+    const d = await r.json();
+    const el = document.getElementById('feedList');
+    if (!d.success || !d.feed.length) { el.innerHTML = '<div class="empty">No activity yet.</div>'; return; }
+    el.innerHTML = d.feed.map(feedItemHTML).join('');
+  } catch (e) {}
+}
+
+function feedItemHTML(a) {
+  const cls = { info:'fd-info', warning:'fd-warning', critical:'fd-critical' }[a.severity] || 'fd-info';
+  return '<div class="feed-item">' +
+    '<div class="feed-dot ' + cls + '"></div>' +
+    '<div><div class="feed-msg">' + a.message + '</div>' +
+    '<div class="feed-meta">' + (a.userName||a.userEmail||'Unknown') + '  ·  ' + fmtDate(a.created_at||a.createdAt) + '  ·  ' + sevBadge(a.severity) + '</div></div></div>';
+}
+
+// ── Users ─────────────────────────────────────────────────────────
+async function loadUsers() {
+  const search = document.getElementById('userSearch').value.trim();
+  const status = document.getElementById('userStatus').value;
+  let url = API + '/users?page=' + usersPage + '&limit=20';
+  if (search) url += '&search=' + encodeURIComponent(search);
+  if (status) url += '&status=' + status;
+
+  try {
+    const r = await fetch(url, { headers: AH() });
+    const d = await r.json();
+    const tb = document.getElementById('usersTable');
+    if (!d.success || !d.users.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">No users found.</td></tr>'; return; }
+
+    tb.innerHTML = d.users.map(u => {
+      const init = u.name ? u.name[0].toUpperCase() : '?';
+      const joined = new Date(u.created_at||u.createdAt).toLocaleDateString();
+      return '<tr>' +
+        '<td><span class="avatar">' + init + '</span>' + u.name + '</td>' +
+        '<td style="color:var(--muted)">' + u.email + '</td>' +
+        '<td>' + statusBadge(u.account_status) + '</td>' +
+        '<td><span class="badge ' + (u.face_enrolled?'b-yes':'b-no') + '">' + (u.face_enrolled?'✅ Yes':'No') + '</span></td>' +
+        '<td style="text-align:center">' + u.cardCount + '</td>' +
+        '<td style="text-align:center">' + u.deviceCount + '</td>' +
+        '<td style="color:var(--muted)">' + joined + '</td>' +
+        '<td>' +
+          '<button class="btn btn-ghost btn-xs" style="margin-right:4px" onclick="viewUser(\'' + u.id + '\')">View</button>' +
+          '<button class="btn btn-xs b-warning" style="background:rgba(212,145,58,.08);border:1px solid rgba(212,145,58,.25);color:var(--warn);border-radius:6px;margin-right:4px;padding:3px 8px;font-size:10px;cursor:pointer" onclick="openStatusModal(\'' + u.id + '\',\'' + u.name + '\',' + '\'' + u.account_status + '\')">' +
+            'Status</button>' +
+          '<button class="btn btn-xs btn-red" onclick="deleteUser(\'' + u.id + '\',\'' + u.name + '\')">Del</button>' +
+        '</td></tr>';
+    }).join('');
+
+    // Pagination
+    const pg = document.getElementById('usersPagination');
+    pg.innerHTML = '';
+    if (d.pages > 1) {
+      for (let i = 1; i <= d.pages; i++) {
+        const b = document.createElement('button');
+        b.textContent = i;
+        b.className = 'btn ' + (i === usersPage ? 'btn-gold' : 'btn-ghost') + ' btn-sm';
+        b.onclick = () => { usersPage = i; loadUsers(); };
+        pg.appendChild(b);
+      }
+      const info = document.createElement('span');
+      info.style.cssText = 'font-size:11px;color:var(--muted);margin-left:8px';
+      info.textContent = d.total + ' total users';
+      pg.appendChild(info);
+    }
+  } catch (e) { console.error('Load users error:', e); }
+}
+
+async function viewUser(id) {
+  try {
+    const r = await fetch(API + '/users/' + id, { headers: AH() });
+    const d = await r.json();
+    if (!d.success) return toast('Failed to load user', 'error');
+
+    const u = d.user;
+    document.getElementById('modalUserName').textContent = u.name + '  ' + statusBadge(u.account_status);
+
+    document.getElementById('modalUserInfo').innerHTML = [
+      ['Email', u.email],
+      ['Status', u.account_status],
+      ['Face ID', u.face_enrolled ? '✅ Enrolled' : '❌ Not enrolled'],
+      ['Last Login', fmtDate(u.last_login)],
+      ['Failed Attempts', u.failed_login_attempts],
+      ['Joined', fmtDate(u.created_at||u.createdAt)],
+    ].map(([lbl, val]) =>
+      '<div class="ud-card"><div class="ud-label">' + lbl + '</div><div class="ud-val">' + val + '</div></div>'
+    ).join('');
+
+    document.getElementById('modalUserCards').innerHTML = d.cards.length
+      ? d.cards.map(c => '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(2,8,15,.5);border-radius:8px;margin-bottom:6px;font-size:12px">' +
+          '<span>💳 ' + c.getMasked?.() || ('**** **** **** ' + c.card_number.slice(-4)) + '  ·  ' + c.bank + '</span>' +
+          statusBadge(c.status) + '</div>').join('')
+      : '<div class="empty" style="padding:10px">No cards linked.</div>';
+
+    document.getElementById('modalUserAlerts').innerHTML = d.alerts.slice(0,5).map(feedItemHTML).join('') || '<div class="empty" style="padding:10px">No alerts.</div>';
+
+    openModal('userModal');
+  } catch (e) { toast('Error loading user', 'error'); }
+}
+
+function openStatusModal(id, name, currentStatus) {
+  currentStatusUserId = id;
+  document.getElementById('statusModalDesc').textContent = 'Changing status for: ' + name;
+  document.getElementById('newStatusVal').value = currentStatus;
+  openModal('statusModal');
+}
+
+async function submitStatusChange() {
+  const status = document.getElementById('newStatusVal').value;
+  try {
+    const r = await fetch(API + '/users/' + currentStatusUserId + '/status', {
+      method: 'PATCH', headers: AH(), body: JSON.stringify({ status })
+    });
+    const d = await r.json();
+    if (d.success) { toast('Status updated to ' + status); closeModal('statusModal'); loadUsers(); loadStats(); }
+    else toast(d.message, 'error');
+  } catch (e) { toast('Failed', 'error'); }
+}
+
+async function deleteUser(id, name) {
+  if (!confirm('Permanently delete user "' + name + '" and ALL their data? This cannot be undone.')) return;
+  try {
+    const r = await fetch(API + '/users/' + id, { method: 'DELETE', headers: AH() });
+    const d = await r.json();
+    if (d.success) { toast('User deleted.'); loadUsers(); loadStats(); }
+    else toast(d.message, 'error');
+  } catch (e) { toast('Failed', 'error'); }
+}
+
+// ── Cards ─────────────────────────────────────────────────────────
+async function loadCards() {
+  const status = document.getElementById('cardStatus').value;
+  let url = API + '/cards?limit=50' + (status ? '&status=' + status : '');
+  try {
+    const r = await fetch(url, { headers: AH() });
+    const d = await r.json();
+    const tb = document.getElementById('cardsTable');
+    if (!d.success || !d.cards.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">No cards found.</td></tr>'; return; }
+
+    tb.innerHTML = d.cards.map(c => {
+      const masked = c.masked || ('**** **** **** ' + c.card_number.slice(-4));
+      return '<tr>' +
+        '<td style="font-family:\'Cormorant Garamond\',serif;letter-spacing:2px">' + masked + '</td>' +
+        '<td><div style="font-size:11px">' + (c.ownerName||'—') + '</div><div style="font-size:10px;color:var(--muted)">' + (c.ownerEmail||'') + '</div></td>' +
+        '<td>' + c.bank + '</td>' +
+        '<td>' + c.card_type + '</td>' +
+        '<td>' + statusBadge(c.status) + '</td>' +
+        '<td style="font-size:11px;color:var(--muted)">' + (c.frozen_at ? fmtDate(c.frozen_at) : '—') + '</td>' +
+        '<td>' +
+          (c.status === 'frozen'
+            ? '<button class="btn btn-safe btn-xs" onclick="changeCardStatus(\'' + c.id + '\',\'active\')">Unfreeze</button>'
+            : '<button class="btn btn-red btn-xs" onclick="changeCardStatus(\'' + c.id + '\',\'frozen\')">Freeze</button>') +
+          ' <button class="btn btn-xs" style="background:rgba(224,85,85,.08);border:1px solid rgba(224,85,85,.2);color:var(--red);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer" onclick="changeCardStatus(\'' + c.id + '\',\'blocked\')">Block</button>' +
+        '</td></tr>';
+    }).join('');
+  } catch (e) { console.error(e); }
+}
+
+async function changeCardStatus(id, status) {
+  try {
+    const r = await fetch(API + '/cards/' + id + '/status', {
+      method: 'PATCH', headers: AH(), body: JSON.stringify({ status })
+    });
+    const d = await r.json();
+    if (d.success) { toast('Card ' + status); loadCards(); loadStats(); }
+    else toast(d.message, 'error');
+  } catch (e) { toast('Failed', 'error'); }
+}
+
+// ── Transactions ──────────────────────────────────────────────────
+async function loadTransactions() {
+  const status = document.getElementById('txnStatus').value;
+  let url = API + '/transactions?limit=50' + (status ? '&status=' + status : '');
+  try {
+    const r = await fetch(url, { headers: AH() });
+    const d = await r.json();
+    const tb = document.getElementById('txnTable');
+    if (!d.success || !d.transactions.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">No transactions yet.</td></tr>'; return; }
+
+    tb.innerHTML = d.transactions.map(t => '<tr>' +
+      '<td style="font-family:\'Cormorant Garamond\',serif;letter-spacing:1px">' + (t.cardMasked||'—') + '</td>' +
+      '<td><div style="font-size:11px">' + (t.userName||'—') + '</div></td>' +
+      '<td style="font-size:11px">' + (t.bank||'—') + '</td>' +
+      '<td style="font-family:\'Cormorant Garamond\',serif;font-size:15px">' + fmtAmt(t.amount) + '</td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + t.description + '</td>' +
+      '<td><span class="badge ' + (t.status==='success'?'b-success':'b-declined') + '">' + (t.status==='success'?'✅ Approved':'❌ Declined') + '</span></td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + fmtDate(t.created_at||t.createdAt) + '</td>' +
+    '</tr>').join('');
+  } catch (e) { console.error(e); }
+}
+
+// ── Alerts ────────────────────────────────────────────────────────
+async function loadAlerts() {
+  const severity = document.getElementById('alertSeverity').value;
+  let url = API + '/alerts?limit=60' + (severity ? '&severity=' + severity : '');
+  try {
+    const r = await fetch(url, { headers: AH() });
+    const d = await r.json();
+    const tb = document.getElementById('alertsTable');
+    if (!d.success || !d.alerts.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">No alerts found.</td></tr>'; return; }
+
+    tb.innerHTML = d.alerts.map(a => '<tr>' +
+      '<td><div style="font-size:11px;font-weight:500">' + (a.userName||'—') + '</div><div style="font-size:10px;color:var(--muted)">' + (a.userEmail||'') + '</div></td>' +
+      '<td style="font-size:10px;color:var(--muted);letter-spacing:.5px">' + a.type.replace(/_/g,' ').toUpperCase() + '</td>' +
+      '<td style="font-size:12px;max-width:320px">' + a.message + '</td>' +
+      '<td>' + sevBadge(a.severity) + '</td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + fmtDate(a.created_at||a.createdAt) + '</td>' +
+    '</tr>').join('');
+  } catch (e) { console.error(e); }
+}
+
+// ── Broadcast ─────────────────────────────────────────────────────
+function openBroadcast() { openModal('broadcastModal'); }
+
+async function sendBroadcast() {
+  const message  = document.getElementById('bcastMsg').value.trim();
+  const severity = document.getElementById('bcastSev').value;
+  if (!message) return toast('Message is required', 'error');
+
+  try {
+    const r = await fetch(API + '/broadcast', {
+      method: 'POST', headers: AH(), body: JSON.stringify({ message, severity })
+    });
+    const d = await r.json();
+    if (d.success) { toast('Broadcast sent to ' + d.count + ' users! ✅'); closeModal('broadcastModal'); document.getElementById('bcastMsg').value = ''; }
+    else toast(d.message, 'error');
+  } catch (e) { toast('Failed to send broadcast', 'error'); }
+}
+
+// ── System Freeze ─────────────────────────────────────────────────
+function openSystemFreeze() { openModal('freezeModal'); }
+
+async function executeSystemFreeze() {
+  const reason = document.getElementById('freezeReason').value.trim();
+  if (!confirm('Are you ABSOLUTELY SURE? This freezes every card in the entire system.')) return;
+
+  try {
+    const r = await fetch(API + '/system-freeze', {
+      method: 'POST', headers: AH(), body: JSON.stringify({ reason })
+    });
+    const d = await r.json();
+    if (d.success) {
+      toast('🚨 System freeze complete — ' + d.count + ' cards frozen!', 'warning');
+      closeModal('freezeModal');
+      loadStats(); loadCards();
+    } else toast(d.message, 'error');
+  } catch (e) { toast('System freeze failed', 'error'); }
+}
+
+// ── Enter key for gate ────────────────────────────────────────────
+document.getElementById('gateKey').addEventListener('keydown', e => {
+  if (e.key === 'Enter') gateLogin();
+});
+</script>
+</body>
+</html>
